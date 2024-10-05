@@ -32,6 +32,15 @@
  *******************************************************************************/
 
 #include <Arduino.h>
+
+#if defined(ESP8266)
+#include <ESP8266WiFi.h> //ESP8266 Core WiFi Library
+#elif defined(ESP32)
+#include <WiFi.h> //ESP32 Core WiFi Library
+#else
+#error Stop right now, and choose a valid board architecture!
+#endif
+
 //
 #include <SPI.h>
 #include <lmic.h>
@@ -289,6 +298,21 @@ void do_send(osjob_t* j) {
 }
 
 void setup() {
+    // Power off WiFi - we use LoRa and not WiFi
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+
+#if defined(ESP32)
+    //  Power off Bluetooth - we use LoRa and not Bluetooth
+    esp_err_t err = btStop();
+
+    if (err == ESP_OK) {
+        printf("Bluetooth stopped successfully\n");
+    } else {
+        printf("Failed to stop Bluetooth\n");
+    }
+#endif
+
     Serial.begin(9600);
     serial.println(F("Starting"));
 
