@@ -74,8 +74,7 @@ void os_getArtEui(u1_t* buf) {
 }
 
 // This should also be in little endian format, see above.
-// static const u1_t PROGMEM DEVEUI[8] = {0xFC, 0xA8, 0x06, 0xD0,
-//                                       0x7E, 0xD5, 0xB3, 0x70};
+// static const u1_t PROGMEM DEVEUI[8] = {0xFC, 0xA8, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
 static const u1_t PROGMEM DEVEUI[8] = {0x42, 0xAC, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
 
 void os_getDevEui(u1_t* buf) {
@@ -85,9 +84,7 @@ void os_getDevEui(u1_t* buf) {
 // This key should be in big endian format (or, since it is not really a
 // number but a block of memory, endianness does not really apply). In
 // practice, a key taken from ttnctl can be copied as-is.
-// static const u1_t PROGMEM APPKEY[16] = {0xD5, 0xF5, 0x0F, 0x1D, 0x0B, 0x66,
-//                                        0xD8, 0x3E, 0x37, 0x05, 0xB9, 0x5A,
-//                                        0x97, 0xF6, 0x31, 0xDB};
+// static const u1_t PROGMEM APPKEY[16] = {0xD5, 0xF5, 0x0F, 0x1D, 0x0B, 0x66, 0xD8, 0x3E, 0x37, 0x05, 0xB9, 0x5A, 0x97, 0xF6, 0x31, 0xDB};
 static const u1_t PROGMEM APPKEY[16] = {0x18, 0x47, 0xF0, 0xA3, 0x22, 0x66, 0x21, 0xDF, 0x17, 0x86, 0x10, 0x94, 0x9F, 0x09, 0x49, 0x06};
 
 void os_getDevKey(u1_t* buf) {
@@ -109,14 +106,10 @@ const unsigned TX_INTERVAL = 60;
 //    .dio = {2, 3, 4},
 //};
 
-const lmic_pinmap lmic_pins = {
-    .nss = 5, // chip select on feather (rf95module) CS
-    .rxtx = LMIC_UNUSED_PIN,
-    .rst = 14,                      // reset pin
-    .dio = {2, 4, LMIC_UNUSED_PIN}, // assumes external jumpers [feather_lora_jumper]
-    // DIO1 is on JP1-1: is io1 - we connect to GPO6
-    // DIO1 is on JP5-3: is D2 - we connect to GPO5
-};
+const lmic_pinmap lmic_pins = {.nss = 5,                // chip select
+                               .rxtx = LMIC_UNUSED_PIN, // antenna switch send/receive
+                               .rst = 14,               // reset pin
+                               .dio = {2, 4, 15}};
 
 // Hack to avoid diagnostic error messages from clangd for non error
 // usage:
