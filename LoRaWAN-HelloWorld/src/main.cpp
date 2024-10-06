@@ -73,10 +73,15 @@ void os_getArtEui(u1_t* buf) {
     memcpy_P(buf, APPEUI, 8);
 }
 
-// This should also be in little endian format, see above.
-// static const u1_t PROGMEM DEVEUI[8] = {0xFC, 0xA8, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
-static const u1_t PROGMEM DEVEUI[8] = {0x42, 0xAC, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
+#define VOC_ENDDEVICE_EXP
+// #define VOC_ENDDEVICE_EXP_2
 
+// This should also be in little endian format, see above.
+#if defined(VOC_ENDDEVICE_EXP)
+static const u1_t PROGMEM DEVEUI[8] = {0x42, 0xAC, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
+#elif defined(VOC_ENDDEVICE_EXP_2)
+static const u1_t PROGMEM DEVEUI[8] = {0xFC, 0xA8, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
+#endif
 void os_getDevEui(u1_t* buf) {
     memcpy_P(buf, DEVEUI, 8);
 }
@@ -84,14 +89,21 @@ void os_getDevEui(u1_t* buf) {
 // This key should be in big endian format (or, since it is not really a
 // number but a block of memory, endianness does not really apply). In
 // practice, a key taken from ttnctl can be copied as-is.
-// static const u1_t PROGMEM APPKEY[16] = {0xD5, 0xF5, 0x0F, 0x1D, 0x0B, 0x66, 0xD8, 0x3E, 0x37, 0x05, 0xB9, 0x5A, 0x97, 0xF6, 0x31, 0xDB};
+#if defined(VOC_ENDDEVICE_EXP)
 static const u1_t PROGMEM APPKEY[16] = {0x18, 0x47, 0xF0, 0xA3, 0x22, 0x66, 0x21, 0xDF, 0x17, 0x86, 0x10, 0x94, 0x9F, 0x09, 0x49, 0x06};
-
+#elif defined(VOC_ENDDEVICE_EXP_2)
+static const u1_t PROGMEM APPKEY[16] = {0xD5, 0xF5, 0x0F, 0x1D, 0x0B, 0x66, 0xD8, 0x3E, 0x37, 0x05, 0xB9, 0x5A, 0x97, 0xF6, 0x31, 0xDB};
+#endif
 void os_getDevKey(u1_t* buf) {
     memcpy_P(buf, APPKEY, 16);
 }
 
+#if defined(VOC_ENDDEVICE_EXP)
+static uint8_t mydata[] = "Hello, world!";
+#elif defined(VOC_ENDDEVICE_EXP_2)
 static uint8_t mydata[] = "Hello, beautiful world!";
+#endif
+
 static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
@@ -106,10 +118,11 @@ const unsigned TX_INTERVAL = 60;
 //    .dio = {2, 3, 4},
 //};
 
-const lmic_pinmap lmic_pins = {.nss = 5,                // chip select
-                               .rxtx = LMIC_UNUSED_PIN, // antenna switch send/receive
-                               .rst = 14,               // reset pin
-                               .dio = {2, 4, 15}};
+const lmic_pinmap lmic_pins = { //
+    .nss = 5,                   // chip select
+    .rxtx = LMIC_UNUSED_PIN,    // antenna switch send/receive
+    .rst = 14,                  // reset pin
+    .dio = {2, 4, 15}};
 
 // Hack to avoid diagnostic error messages from clangd for non error
 // usage:
@@ -192,8 +205,7 @@ void onEvent(ev_t ev) {
             serial.println(F("EV_REJOIN_FAILED"));
             break;
         case EV_TXCOMPLETE:
-            //            serial.println(F("EV_TXCOMPLETE (includes waiting for RX
-            //            windows)"));
+            serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
             if (LMIC.txrxFlags & TXRX_ACK)
                 serial.println(F("Received ack"));
             if (LMIC.dataLen != 0) {
@@ -230,8 +242,6 @@ void onEvent(ev_t ev) {
 
             // Schedule next transmission
             os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
-
-            serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
             break;
         case EV_LOST_TSYNC:
             serial.println(F("EV_LOST_TSYNC"));
