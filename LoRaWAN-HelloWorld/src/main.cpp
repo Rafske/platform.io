@@ -78,9 +78,9 @@ void os_getArtEui(u1_t* buf) {
 
 // This should also be in little endian format, see above.
 #if defined(VOC_ENDDEVICE_EXP)
-static const u1_t PROGMEM DEVEUI[8] = {0x42, 0xAC, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
-#elif defined(VOC_ENDDEVICE_EXP_2)
 static const u1_t PROGMEM DEVEUI[8] = {0xFC, 0xA8, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
+#elif defined(VOC_ENDDEVICE_EXP_2)
+static const u1_t PROGMEM DEVEUI[8] = {0x42, 0xAC, 0x06, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};
 #endif
 void os_getDevEui(u1_t* buf) {
     memcpy_P(buf, DEVEUI, 8);
@@ -90,9 +90,9 @@ void os_getDevEui(u1_t* buf) {
 // number but a block of memory, endianness does not really apply). In
 // practice, a key taken from ttnctl can be copied as-is.
 #if defined(VOC_ENDDEVICE_EXP)
-static const u1_t PROGMEM APPKEY[16] = {0x18, 0x47, 0xF0, 0xA3, 0x22, 0x66, 0x21, 0xDF, 0x17, 0x86, 0x10, 0x94, 0x9F, 0x09, 0x49, 0x06};
-#elif defined(VOC_ENDDEVICE_EXP_2)
 static const u1_t PROGMEM APPKEY[16] = {0xD5, 0xF5, 0x0F, 0x1D, 0x0B, 0x66, 0xD8, 0x3E, 0x37, 0x05, 0xB9, 0x5A, 0x97, 0xF6, 0x31, 0xDB};
+#elif defined(VOC_ENDDEVICE_EXP_2)
+static const u1_t PROGMEM APPKEY[16] = {0x18, 0x47, 0xF0, 0xA3, 0x22, 0x66, 0x21, 0xDF, 0x17, 0x86, 0x10, 0x94, 0x9F, 0x09, 0x49, 0x06};
 #endif
 void os_getDevKey(u1_t* buf) {
     memcpy_P(buf, APPKEY, 16);
@@ -235,9 +235,6 @@ void onEvent(ev_t ev) {
                 serial.print(F("Data Payload as string: "));
                 serial.write(LMIC.frame + LMIC.dataBeg, LMIC.dataLen);
                 serial.println();
-
-                serial.print(os_getTime());
-                serial.print(": ");
             }
 
             // Schedule next transmission
