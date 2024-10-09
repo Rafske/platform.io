@@ -1,7 +1,8 @@
 ./
-include
-src
-.pio/libdeps/wemos_d1_mini32/MCCI LoRaWAN LMIC library/src
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-lmic/include
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-lmic/src
+/home/voc/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-lmic/.pio/libdeps/esp32dev/MCCI LoRaWAN LMIC library/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include
 /home/voc/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include
@@ -198,7 +199,7 @@ src
 /home/voc/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/fb_gfx/include
 /home/voc/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/dio_qspi/include
 /home/voc/.platformio/packages/framework-arduinoespressif32/cores/esp32
-/home/voc/.platformio/packages/framework-arduinoespressif32/variants/d1_mini32
+/home/voc/.platformio/packages/framework-arduinoespressif32/variants/esp32
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src
@@ -227,12 +228,11 @@ src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/USB/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/Update/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src
-/home/voc/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src
 /home/voc/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/8.4.0
 /home/voc/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/8.4.0/xtensa-esp32-elf
-/home/voc/.platformio/packages/toolchain-xtensa-esp32/lib/gcc/xtensa-esp32-elf/8.4.0/include-fixed
 /home/voc/.platformio/packages/toolchain-xtensa-esp32/lib/gcc/xtensa-esp32-elf/8.4.0/include
+/home/voc/.platformio/packages/toolchain-xtensa-esp32/lib/gcc/xtensa-esp32-elf/8.4.0/include-fixed
 /home/voc/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include
