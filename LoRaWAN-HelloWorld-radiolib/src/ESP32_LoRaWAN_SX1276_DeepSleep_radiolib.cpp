@@ -245,52 +245,55 @@ void setup() {
             Serial.println(F("<MAC commands only>"));
         }
 
+        Serial.println(F("[LoRaWan] Signal:"));
         // print RSSI (Received Signal Strength Indicator)
-        Serial.print(F("[LoRaWAN] RSSI:\t\t"));
+        Serial.print(F("[LoRaWAN]     RSSI:               "));
         Serial.print(radio.getRSSI());
         Serial.println(F(" dBm"));
 
         // print SNR (Signal-to-Noise Ratio)
-        Serial.print(F("[LoRaWAN] SNR:\t\t"));
+        Serial.print(F("[LoRaWAN]     SNR:                "));
         Serial.print(radio.getSNR());
         Serial.println(F(" dB"));
 
         // print extra information about the event
         Serial.println(F("[LoRaWAN] Event information:"));
-        Serial.print(F("[LoRaWAN] Confirmed: \t"));
+        Serial.print(F("[LoRaWAN]     Confirmed:          "));
         Serial.println(downlinkDetails.confirmed);
-        Serial.print(F("[LoRaWAN] Confirming:\t"));
+        Serial.print(F("[LoRaWAN]     Confirming:         "));
         Serial.println(downlinkDetails.confirming);
-        Serial.print(F("[LoRaWAN] Datarate:  \t"));
+        Serial.print(F("[LoRaWAN]     Datarate:           "));
         Serial.println(downlinkDetails.datarate);
-        Serial.print(F("[LoRaWAN] Frequency: \t"));
+        Serial.print(F("[LoRaWAN]     Frequency:          "));
         Serial.print(downlinkDetails.freq, 3);
         Serial.println(F(" MHz"));
-        Serial.print(F("[LoRaWAN] Frame count:\t"));
+        Serial.print(F("[LoRaWAN]     Frame count:        "));
         Serial.println(downlinkDetails.fCnt);
-        Serial.print(F("[LoRaWAN] Port:\t\t"));
+        Serial.print(F("[LoRaWAN]     Port:               "));
         Serial.println(downlinkDetails.fPort);
-        Serial.print(F("[LoRaWAN] Time-on-air:\t"));
+        Serial.print(F("[LoRaWAN]     Time-on-air:        "));
         Serial.print(node.getLastToA());
         Serial.println(F(" ms"));
-        Serial.print(F("[LoRaWAN] Rx window: \t"));
+        Serial.print(F("[LoRaWAN]     Rx window:          "));
         Serial.println(state);
 
+        Serial.println(F("[LoRaWAN] Link check:"));
         uint8_t margin = 0;
         uint8_t gwCnt = 0;
         if (node.getMacLinkCheckAns(&margin, &gwCnt) == RADIOLIB_ERR_NONE) {
-            Serial.print(F("[LoRaWAN] LinkCheck margin:\t"));
+            Serial.print(F("[LoRaWAN]     LinkCheck margin:   "));
             Serial.println(margin);
-            Serial.print(F("[LoRaWAN] LinkCheck count:\t"));
+            Serial.print(F("[LoRaWAN]     LinkCheck count:    "));
             Serial.println(gwCnt);
         }
 
+        Serial.println(F("[LoRaWAN] Timing:"));
         uint32_t networkTime = 0;
         uint8_t fracSecond = 0;
         if (node.getMacDeviceTimeAns(&networkTime, &fracSecond, true) == RADIOLIB_ERR_NONE) {
-            Serial.print(F("[LoRaWAN] DeviceTime Unix:\t"));
+            Serial.print(F("[LoRaWAN]     DeviceTime Unix:    "));
             Serial.println(networkTime);
-            Serial.print(F("[LoRaWAN] DeviceTime second:\t1/"));
+            Serial.print(F("[LoRaWAN]     DeviceTime second:   1/"));
             Serial.println(fracSecond);
         }
     } else {
