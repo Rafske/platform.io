@@ -17,20 +17,6 @@
 // for development purposes you can use all zeros - see wiki for details
 #define RADIOLIB_LORAWAN_JOIN_EUI 0x0000000000000000
 
-// The Device EUI & two keys can be generated on the TTN console
-#ifndef RADIOLIB_LORAWAN_DEV_EUI // Replace with your Device EUI
-#define RADIOLIB_LORAWAN_DEV_EUI 0x70B3D57ED006AF2B
-#endif
-#ifndef RADIOLIB_LORAWAN_APP_KEY // Replace with your App Key
-#define RADIOLIB_LORAWAN_APP_KEY 0x26, 0xFD, 0x49, 0x41, 0x8E, 0xC9, 0xAC, 0xE9, 0x7A, 0xD8, 0xCE, 0x14, 0x83, 0xED, 0xD4, 0x00
-#endif
-#ifndef RADIOLIB_LORAWAN_NWK_KEY // Put your Nwk Key here
-#define RADIOLIB_LORAWAN_NWK_KEY 0x65, 0xB5, 0x3D, 0xCD, 0xEC, 0xE6, 0xAC, 0x36, 0x73, 0xE8, 0x2B, 0x6A, 0xD6, 0xDA, 0x7D, 0x93
-#endif
-
-// For the curious, the #ifndef blocks allow for automated testing &/or you can
-// put your EUI & keys in to your platformio.ini - see wiki for more tips
-
 // Regional choices: EU868, US915, AU915, AS923, IN865, KR920, CN780, CN500
 #ifdef RADIOLIB_LORA_REGION
 const LoRaWANBand_t Region = RADIOLIB_LORA_REGION;
@@ -121,7 +107,11 @@ RADIOLIB_LORA_MODULE radio = new Module(RADIOLIB_LORA_MODULE_BITMAP);
 uint64_t joinEUI = RADIOLIB_LORAWAN_JOIN_EUI;
 uint64_t devEUI = RADIOLIB_LORAWAN_DEV_EUI;
 uint8_t appKey[] = {RADIOLIB_LORAWAN_APP_KEY};
+#ifdef RADIOLIB_LORAWAN_NWK_KEY
 uint8_t nwkKey[] = {RADIOLIB_LORAWAN_NWK_KEY};
+#else
+uint8_t* nwkKey = nullptr;
+#endif
 
 // Create the LoRaWAN node
 LoRaWANNode node(&radio, &Region, subBand);
