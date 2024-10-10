@@ -257,20 +257,20 @@ void setup() {
 
         // print extra information about the event
         Serial.println(F("[LoRaWAN] Event information:"));
-        Serial.print(F("[LoRaWAN] Confirmed:\t"));
+        Serial.print(F("[LoRaWAN] Confirmed: \t"));
         Serial.println(downlinkDetails.confirmed);
         Serial.print(F("[LoRaWAN] Confirming:\t"));
         Serial.println(downlinkDetails.confirming);
-        Serial.print(F("[LoRaWAN] Datarate:\t"));
+        Serial.print(F("[LoRaWAN] Datarate:  \t"));
         Serial.println(downlinkDetails.datarate);
-        Serial.print(F("[LoRaWAN] Frequency:\t"));
+        Serial.print(F("[LoRaWAN] Frequency: \t"));
         Serial.print(downlinkDetails.freq, 3);
         Serial.println(F(" MHz"));
         Serial.print(F("[LoRaWAN] Frame count:\t"));
         Serial.println(downlinkDetails.fCnt);
         Serial.print(F("[LoRaWAN] Port:\t\t"));
         Serial.println(downlinkDetails.fPort);
-        Serial.print(F("[LoRaWAN] Time-on-air: \t"));
+        Serial.print(F("[LoRaWAN] Time-on-air:\t"));
         Serial.print(node.getLastToA());
         Serial.println(F(" ms"));
         Serial.print(F("[LoRaWAN] Rx window: \t"));
