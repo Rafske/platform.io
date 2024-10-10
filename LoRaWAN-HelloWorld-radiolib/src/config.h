@@ -15,7 +15,20 @@
 
 // JoinEUI - previous versions of LoRaWAN called this AppEUI
 // for development purposes you can use all zeros - see wiki for details
+#ifndef RADIOLIB_LORAWAN_JOIN_EUI
 #define RADIOLIB_LORAWAN_JOIN_EUI 0x0000000000000000
+#endif
+
+// Copy over the EUI's & keys in to the something that will not compile if
+// incorrectly formatted
+uint64_t joinEUI = RADIOLIB_LORAWAN_JOIN_EUI;
+uint64_t devEUI = RADIOLIB_LORAWAN_DEV_EUI;
+uint8_t appKey[] = {RADIOLIB_LORAWAN_APP_KEY};
+#ifdef RADIOLIB_LORAWAN_NWK_KEY
+uint8_t nwkKey[] = {RADIOLIB_LORAWAN_NWK_KEY};
+#else
+uint8_t* nwkKey = nullptr;
+#endif
 
 // Regional choices: EU868, US915, AU915, AS923, IN865, KR920, CN780, CN500
 #ifdef RADIOLIB_LORA_REGION
@@ -100,17 +113,6 @@ RADIOLIB_LORA_MODULE radio = new Module(RADIOLIB_LORA_MODULE_BITMAP);
 #else
 #pragma message("Unknown board - no automagic pinmap available")
 
-#endif
-
-// Copy over the EUI's & keys in to the something that will not compile if
-// incorrectly formatted
-uint64_t joinEUI = RADIOLIB_LORAWAN_JOIN_EUI;
-uint64_t devEUI = RADIOLIB_LORAWAN_DEV_EUI;
-uint8_t appKey[] = {RADIOLIB_LORAWAN_APP_KEY};
-#ifdef RADIOLIB_LORAWAN_NWK_KEY
-uint8_t nwkKey[] = {RADIOLIB_LORAWAN_NWK_KEY};
-#else
-uint8_t* nwkKey = nullptr;
 #endif
 
 // Create the LoRaWAN node

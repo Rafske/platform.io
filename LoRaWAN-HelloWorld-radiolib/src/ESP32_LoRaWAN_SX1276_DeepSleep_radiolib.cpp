@@ -84,6 +84,11 @@ int16_t lwActivate() {
     // ##### setup the flash storage
     store.begin("radiolib");
 
+    // ##### clear the store on first boot
+    if (bootCount == 1) {
+        store.clear();
+    }
+
     // ##### if we have previously saved nonces, restore them and try to restore
     // session as well
     if (store.isKey("nonces")) {
@@ -277,23 +282,23 @@ void setup() {
         Serial.print(F("[LoRaWAN]     Rx window:          "));
         Serial.println(state);
 
-        Serial.println(F("[LoRaWAN] Link check:"));
         uint8_t margin = 0;
         uint8_t gwCnt = 0;
         if (node.getMacLinkCheckAns(&margin, &gwCnt) == RADIOLIB_ERR_NONE) {
+            Serial.println(F("[LoRaWAN] Link check:"));
             Serial.print(F("[LoRaWAN]     LinkCheck margin:   "));
             Serial.println(margin);
             Serial.print(F("[LoRaWAN]     LinkCheck count:    "));
             Serial.println(gwCnt);
         }
 
-        Serial.println(F("[LoRaWAN] Timing:"));
         uint32_t networkTime = 0;
         uint8_t fracSecond = 0;
         if (node.getMacDeviceTimeAns(&networkTime, &fracSecond, true) == RADIOLIB_ERR_NONE) {
+            Serial.println(F("[LoRaWAN] Timing:"));
             Serial.print(F("[LoRaWAN]     DeviceTime Unix:    "));
             Serial.println(networkTime);
-            Serial.print(F("[LoRaWAN]     DeviceTime second:   1/"));
+            Serial.print(F("[LoRaWAN]     DeviceTime second:  1/"));
             Serial.println(fracSecond);
         }
     } else {
