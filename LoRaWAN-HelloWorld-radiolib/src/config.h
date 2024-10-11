@@ -13,12 +13,6 @@
 #define RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS (5UL * 50UL) // minutes x seconds
 #endif
 
-// JoinEUI - previous versions of LoRaWAN called this AppEUI
-// for development purposes you can use all zeros - see wiki for details
-#ifndef RADIOLIB_LORAWAN_JOIN_EUI
-#define RADIOLIB_LORAWAN_JOIN_EUI 0x0000000000000000
-#endif
-
 // Copy over the EUI's & keys in to the something that will not compile if
 // incorrectly formatted
 uint64_t joinEUI = RADIOLIB_LORAWAN_JOIN_EUI;
