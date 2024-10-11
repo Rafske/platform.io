@@ -84,11 +84,6 @@ int16_t lwActivate() {
     // ##### setup the flash storage
     store.begin("radiolib");
 
-    // ##### clear the store on first boot
-    if (bootCount == 1) {
-        store.clear();
-    }
-
     // ##### if we have previously saved nonces, restore them and try to restore
     // session as well
     if (store.isKey("nonces")) {
