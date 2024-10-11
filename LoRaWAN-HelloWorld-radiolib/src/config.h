@@ -106,7 +106,7 @@ SX1262 radio = new Module(RADIOLIB_BUILTIN_MODULE);
 // -D RADIOLIB_LORA_MODULE_BITMAP="5, 2, 14, 4"
 // ============================================================================
 #elif defined(RADIOLIB_LORA_MODULE)
-#pragma message("Using module configured in platformio.ini")
+// #pragma message("Using module configured in platformio.ini")
 RADIOLIB_LORA_MODULE radio = new Module(RADIOLIB_LORA_MODULE_BITMAP);
 
 // Unknown board
