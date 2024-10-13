@@ -27,22 +27,17 @@ Serial.prints - we promise the final result isn't that many lines.
 
 // ##### load the ESP32 preferences facilites
 #include <Preferences.h>
-Preferences store;
+#include <RadioLib.h>
+#include <TinyGPS++.h>
 
 // LoRaWAN config, credentials & pinmap
 #include "config.h"
-
-#include <RadioLib.h>
-#include <TinyGPS++.h>
 
 // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
 // puts these in to the RTC memory which is preserved during deep-sleep
 RTC_DATA_ATTR uint16_t bootCount = 0;
 RTC_DATA_ATTR uint16_t bootCountSinceUnsuccessfulJoin = 0;
 RTC_DATA_ATTR uint8_t LWsession[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
-
-// the uplink interval in seconds
-const uint32_t uplinkIntervalSeconds = RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS;
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -82,7 +77,10 @@ int16_t lwActivate() {
     node.beginOTAA(joinEUI, devEUI, nwkKey, appKey);
 
     Serial.println(F("Recalling LoRaWAN nonces & session"));
+
     // ##### setup the flash storage
+    Preferences store;
+
     store.begin("radiolib");
 
     // ##### if we have previously saved nonces, restore them and try to restore
@@ -171,35 +169,28 @@ int16_t lwActivate() {
     return (state);
 }
 
-bool isValid(TinyGPSPlus& gps) {
+bool gpsIsValid(const TinyGPSPlus& gps) {
     return gps.location.isValid() && gps.date.isValid() && gps.time.isValid() && gps.satellites.isValid() && gps.altitude.isValid() &&
            gps.speed.isValid() && gps.course.isValid() && gps.hdop.isValid();
 }
 
-bool isUpdated(TinyGPSPlus& gps) {
+bool gpsIsUpdated(const TinyGPSPlus& gps) {
     return gps.location.isUpdated() && gps.date.isUpdated() && gps.time.isUpdated() && gps.satellites.isUpdated() &&
            gps.altitude.isUpdated() && gps.speed.isUpdated() && gps.course.isUpdated() && gps.hdop.isUpdated();
 }
 
+int16_t state = 0; // return value for calls to RadioLib
+
+std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
+
 // setup & execute all device functions ...
 void setup() {
-    // Declare the Hardware Serial to be used by the GPS
-    HardwareSerial gpsSerial(2);
-
     Serial.begin(115200);
     while (!Serial)
         ;        // wait for serial to be initalised
     delay(2000); // give time to switch to the serial monitor
 
-    gpsSerial.begin(9600, SERIAL_8N1, 16, 17);
-    delay(10);
-    while (!gpsSerial)
-        ; // wait for serial to be initalised
-
     print_wakeup_reason();
-    Serial.println(F("\nSetup"));
-
-    int16_t state = 0; // return value for calls to RadioLib
 
     // setup the radio based on the pinmap (connections) in config.h
     Serial.println(F("Initalise the radio"));
@@ -208,28 +199,32 @@ void setup() {
 
     // activate node by restoring session or otherwise joining the network
     state = lwActivate();
-    // state is one of RADIOLIB_LORAWAN_NEW_SESSION or
-    // RADIOLIB_LORAWAN_SESSION_RESTORED
-    // ----- and now for the main event -----
-    Serial.println(F("Aquire data"));
 
-    // this is the place to gather the sensor inputs
+    if (state == RADIOLIB_LORAWAN_NEW_SESSION || state == RADIOLIB_LORAWAN_SESSION_RESTORED) {
+        // ----- and now for the main event -----
+        Serial.println(F("Aquire data"));
 
-    // build uplinkPayload byte array
-    std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
+        // this is the place to gather the sensor inputs
 
-    bool frmPending = false;
-    do {
+        Serial.println(F("\nSetup"));
+
+        // Declare the Hardware Serial to be used by the GPS
+        HardwareSerial gpsSerial(2);
+        gpsSerial.begin(9600, SERIAL_8N1, 16, 17);
+        delay(10);
+        while (!gpsSerial)
+            ; // wait for serial to be initalised
+
         TinyGPSPlus gps;
 
         unsigned long start = millis();
-        while (millis() - start < 2000 && !isValid(gps)) {
+        while (millis() - start < 2000 && !gpsIsValid(gps)) {
             while (gpsSerial.available() > 0) {
                 gps.encode(gpsSerial.read());
             }
         }
 
-        if (isValid(gps)) {
+        if (gpsIsValid(gps)) {
             Serial.println("############### GPS ###############");
             Serial.print("LAT = ");
             Serial.println(gps.location.lat(), 6);
@@ -255,151 +250,157 @@ void setup() {
             Serial.println("GPS positioning data not valid");
         }
 
-        Serial.println(F("Sending uplink"));
+        // build uplinkPayload byte array
+        Serial.println(F("Constructing uplink"));
 
-        if (isValid(gps)) {
+        if (gpsIsValid(gps)) {
             uplinkPayload = (std::string("{\"lat\":") + std::to_string(gps.location.lat()) +
                              ",\"lng\":" + std::to_string(gps.location.lng()) + ",\"alt\":" + std::to_string(gps.altitude.meters()) + "}");
         } else {
             uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
         }
+    } else {
+        Serial.println(F("LoRaWAN not activated"));
 
-        uint8_t fPort = 1;
+        // now save session to RTC memory
+        const uint8_t* persist = node.getBufferSession();
+        memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
 
-        // create downlinkPayload byte array
-        uint8_t downlinkPayload[255]; // Make sure this fits your plans!
-        size_t downlinkSize;          // To hold the actual payload size received
-
-        // you can also retrieve additional information about an uplink or
-        // downlink by passing a reference to LoRaWANEvent_t structure
-        LoRaWANEvent_t uplinkDetails;
-        LoRaWANEvent_t downlinkDetails;
-
-        uint32_t fCntUp = node.getFCntUp();
-
-        if (frmPending) {
-            state = node.sendReceive((uint8_t*) (""), // cppcheck-suppress cstyleCast
-                                     0,
-                                     fPort,
-                                     downlinkPayload,
-                                     &downlinkSize,
-                                     false,
-                                     &uplinkDetails,
-                                     &downlinkDetails);
-        } else if (fCntUp == 1) {
-            Serial.println(F("and requesting LinkCheck and DeviceTime"));
-            node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_LINK_CHECK);
-            node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_DEVICE_TIME);
-
-            Serial.print("Sending: ");
-            Serial.println(uplinkPayload.c_str());
-            state = node.sendReceive((uint8_t*) uplinkPayload.c_str(), // cppcheck-suppress cstyleCast
-                                     uplinkPayload.length(),
-                                     fPort,
-                                     downlinkPayload,
-                                     &downlinkSize,
-                                     true,
-                                     &uplinkDetails,
-                                     &downlinkDetails);
-        } else {
-            Serial.print("Sending: ");
-            Serial.println(uplinkPayload.c_str());
-            state = node.sendReceive((uint8_t*) uplinkPayload.c_str(), // cppcheck-suppress cstyleCast
-                                     uplinkPayload.length(),
-                                     fPort,
-                                     downlinkPayload,
-                                     &downlinkSize,
-                                     false,
-                                     &uplinkDetails,
-                                     &downlinkDetails);
-        }
-
-        //  debug((state == RADIOLIB_LORAWAN_DOWNLINK) && (state !=
-        //  RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // wrong
-        //  condition
-        debug((state < RADIOLIB_ERR_NONE) && (state != RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // This is correct
-
-        if (state > 0) {
-            Serial.println(F("Downlink received"));
-
-            if (downlinkSize > 0) {
-                Serial.print(F("[LoRaWAN] Payload:\t"));
-                arrayDump(downlinkPayload, downlinkSize);
-            } else {
-                Serial.println(F("<MAC commands only>"));
-            }
-
-            Serial.println(F("[LoRaWan] Signal:"));
-            // print RSSI (Received Signal Strength Indicator)
-            Serial.print(F("[LoRaWAN]     RSSI:               "));
-            Serial.print(radio.getRSSI());
-            Serial.println(F(" dBm"));
-
-            // print SNR (Signal-to-Noise Ratio)
-            Serial.print(F("[LoRaWAN]     SNR:                "));
-            Serial.print(radio.getSNR());
-            Serial.println(F(" dB"));
-
-            // print extra information about the event
-            Serial.println(F("[LoRaWAN] Event information:"));
-            Serial.print(F("[LoRaWAN]     Confirmed:          "));
-            Serial.println(downlinkDetails.confirmed);
-            Serial.print(F("[LoRaWAN]     Confirming:         "));
-            Serial.println(downlinkDetails.confirming);
-            Serial.print(F("[LoRaWAN]     FrmPending:         "));
-            Serial.println(downlinkDetails.frmPending);
-            Serial.print(F("[LoRaWAN]     Datarate:           "));
-            Serial.println(downlinkDetails.datarate);
-            Serial.print(F("[LoRaWAN]     Frequency:          "));
-            Serial.print(downlinkDetails.freq, 3);
-            Serial.println(F(" MHz"));
-            Serial.print(F("[LoRaWAN]     Frame count:        "));
-            Serial.println(downlinkDetails.fCnt);
-            Serial.print(F("[LoRaWAN]     Port:               "));
-            Serial.println(downlinkDetails.fPort);
-            Serial.print(F("[LoRaWAN]     Time-on-air:        "));
-            Serial.print(node.getLastToA());
-            Serial.println(F(" ms"));
-            Serial.print(F("[LoRaWAN]     Rx window:          "));
-            Serial.println(state);
-
-            uint8_t margin = 0;
-            uint8_t gwCnt = 0;
-            if (node.getMacLinkCheckAns(&margin, &gwCnt) == RADIOLIB_ERR_NONE) {
-                Serial.println(F("[LoRaWAN] Link check:"));
-                Serial.print(F("[LoRaWAN]     LinkCheck margin:   "));
-                Serial.println(margin);
-                Serial.print(F("[LoRaWAN]     LinkCheck count:    "));
-                Serial.println(gwCnt);
-            }
-
-            uint32_t networkTime = 0;
-            uint8_t fracSecond = 0;
-            if (node.getMacDeviceTimeAns(&networkTime, &fracSecond, true) == RADIOLIB_ERR_NONE) {
-                Serial.println(F("[LoRaWAN] Timing:"));
-                Serial.print(F("[LoRaWAN]     DeviceTime Unix:    "));
-                Serial.println(networkTime);
-                Serial.print(F("[LoRaWAN]     DeviceTime second:  1/"));
-                Serial.println(fracSecond);
-            }
-
-            frmPending = downlinkDetails.frmPending;
-        } else {
-            Serial.println(F("[LoRaWAN] No downlink received"));
-        }
-    } while (state > 0 && frmPending);
-
-    // now save session to RTC memory
-    const uint8_t* persist = node.getBufferSession();
-    memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
-
-    // wait until next uplink - observing legal & TTN FUP constraints
-    gotoSleep(uplinkIntervalSeconds);
+        // wait until next uplink - observing legal & TTN FUP constraints
+        gotoSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);
+    }
 }
 
-// The ESP32 wakes from deep-sleep and starts from the very beginning.
-// It then goes back to sleep, so loop() is never called and which is
-// why it is empty.
-
 void loop() {
+    // set fport
+    uint8_t fPort = 1;
+
+    // create downlinkPayload byte array
+    uint8_t downlinkPayload[255]; // Make sure this fits your plans!
+    size_t downlinkSize;          // To hold the actual payload size received
+
+    // you can also retrieve additional information about an uplink or
+    // downlink by passing a reference to LoRaWANEvent_t structure
+    static LoRaWANEvent_t uplinkDetails = {};
+    static LoRaWANEvent_t downlinkDetails = {};
+
+    if (downlinkDetails.frmPending) {
+        Serial.println(F("[LoRaWAN] Sending request for pending frame:"));
+        state = node.sendReceive((uint8_t*) (""), // cppcheck-suppress cstyleCast
+                                 0,
+                                 fPort,
+                                 downlinkPayload,
+                                 &downlinkSize,
+                                 false,
+                                 &uplinkDetails,
+                                 &downlinkDetails);
+    } else if (node.getFCntUp() == 0) {
+        Serial.print(F("[LoRaWAN] Sending: "));
+        Serial.println(uplinkPayload.c_str());
+        Serial.println(F("[LoRaWAN]   and requesting LinkCheck and DeviceTime"));
+
+        node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_LINK_CHECK);
+        node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_DEVICE_TIME);
+
+        state = node.sendReceive((uint8_t*) uplinkPayload.c_str(), // cppcheck-suppress cstyleCast
+                                 uplinkPayload.length(),
+                                 fPort,
+                                 downlinkPayload,
+                                 &downlinkSize,
+                                 true,
+                                 &uplinkDetails,
+                                 &downlinkDetails);
+    } else {
+        Serial.print("[LoRaWAN] Sending: ");
+        Serial.println(uplinkPayload.c_str());
+        state = node.sendReceive((uint8_t*) uplinkPayload.c_str(), // cppcheck-suppress cstyleCast
+                                 uplinkPayload.length(),
+                                 fPort,
+                                 downlinkPayload,
+                                 &downlinkSize,
+                                 false,
+                                 &uplinkDetails,
+                                 &downlinkDetails);
+    }
+
+    //  debug((state == RADIOLIB_LORAWAN_DOWNLINK) && (state !=
+    //  RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // wrong
+    //  condition
+    debug((state < RADIOLIB_ERR_NONE) && (state != RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // This is correct
+
+    if (state > 0) {
+        Serial.println(F("Downlink received"));
+
+        if (downlinkSize > 0) {
+            Serial.print(F("[LoRaWAN] Payload:\t"));
+            arrayDump(downlinkPayload, downlinkSize);
+        } else {
+            Serial.println(F("<MAC commands only>"));
+        }
+
+        Serial.println(F("[LoRaWan] Signal:"));
+        // print RSSI (Received Signal Strength Indicator)
+        Serial.print(F("[LoRaWAN]     RSSI:               "));
+        Serial.print(radio.getRSSI());
+        Serial.println(F(" dBm"));
+
+        // print SNR (Signal-to-Noise Ratio)
+        Serial.print(F("[LoRaWAN]     SNR:                "));
+        Serial.print(radio.getSNR());
+        Serial.println(F(" dB"));
+
+        // print extra information about the event
+        Serial.println(F("[LoRaWAN] Event information:"));
+        Serial.print(F("[LoRaWAN]     Confirmed:          "));
+        Serial.println(downlinkDetails.confirmed);
+        Serial.print(F("[LoRaWAN]     Confirming:         "));
+        Serial.println(downlinkDetails.confirming);
+        Serial.print(F("[LoRaWAN]     FrmPending:         "));
+        Serial.println(downlinkDetails.frmPending);
+        Serial.print(F("[LoRaWAN]     Datarate:           "));
+        Serial.println(downlinkDetails.datarate);
+        Serial.print(F("[LoRaWAN]     Frequency:          "));
+        Serial.print(downlinkDetails.freq, 3);
+        Serial.println(F(" MHz"));
+        Serial.print(F("[LoRaWAN]     Frame count:        "));
+        Serial.println(downlinkDetails.fCnt);
+        Serial.print(F("[LoRaWAN]     Port:               "));
+        Serial.println(downlinkDetails.fPort);
+        Serial.print(F("[LoRaWAN]     Time-on-air:        "));
+        Serial.print(node.getLastToA());
+        Serial.println(F(" ms"));
+        Serial.print(F("[LoRaWAN]     Rx window:          "));
+        Serial.println(state);
+
+        uint8_t margin = 0;
+        uint8_t gwCnt = 0;
+        if (node.getMacLinkCheckAns(&margin, &gwCnt) == RADIOLIB_ERR_NONE) {
+            Serial.println(F("[LoRaWAN] Link check:"));
+            Serial.print(F("[LoRaWAN]     LinkCheck margin:   "));
+            Serial.println(margin);
+            Serial.print(F("[LoRaWAN]     LinkCheck count:    "));
+            Serial.println(gwCnt);
+        }
+
+        uint32_t networkTime = 0;
+        uint8_t fracSecond = 0;
+        if (node.getMacDeviceTimeAns(&networkTime, &fracSecond, true) == RADIOLIB_ERR_NONE) {
+            Serial.println(F("[LoRaWAN] Timing:"));
+            Serial.print(F("[LoRaWAN]     DeviceTime Unix:    "));
+            Serial.println(networkTime);
+            Serial.print(F("[LoRaWAN]     DeviceTime second:  1/"));
+            Serial.println(fracSecond);
+        }
+    } else {
+        Serial.println(F("[LoRaWAN] No downlink received"));
+    }
+
+    if (state <= 0 || !downlinkDetails.frmPending) {
+        // now save session to RTC memory
+        const uint8_t* persist = node.getBufferSession();
+        memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
+
+        // wait until next uplink - observing legal & TTN FUP constraints
+        gotoSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);
+    }
 }
