@@ -179,8 +179,6 @@ bool gpsIsUpdated(const TinyGPSPlus& gps) {
            gps.altitude.isUpdated() && gps.speed.isUpdated() && gps.course.isUpdated() && gps.hdop.isUpdated();
 }
 
-int16_t state = 0; // return value for calls to RadioLib
-
 std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
 
 // setup & execute all device functions ...
@@ -194,7 +192,8 @@ void setup() {
 
     // setup the radio based on the pinmap (connections) in config.h
     Serial.println(F("Initalise the radio"));
-    state = radio.begin();
+
+    int16_t state = radio.begin();
     debug(state != RADIOLIB_ERR_NONE, F("Initalise radio failed"), state, true);
 
     // activate node by restoring session or otherwise joining the network
@@ -281,10 +280,11 @@ void loop() {
 
     // you can also retrieve additional information about an uplink or
     // downlink by passing a reference to LoRaWANEvent_t structure
-    static LoRaWANEvent_t uplinkDetails = {};
-    static LoRaWANEvent_t downlinkDetails = {};
+    static LoRaWANEvent_t uplinkDetails{};
+    static LoRaWANEvent_t downlinkDetails{};
 
-    if (downlinkDetails.frmPending) {
+    int16_t state = 0;
+    if (downlinkDetails.frmPending) { // At first run this is false due to initialization
         Serial.println(F("[LoRaWAN] Sending request for pending frame:"));
         state = node.sendReceive((uint8_t*) (""), // cppcheck-suppress cstyleCast
                                  0,
@@ -294,7 +294,7 @@ void loop() {
                                  false,
                                  &uplinkDetails,
                                  &downlinkDetails);
-    } else if (node.getFCntUp() == 0) {
+    } else if (node.getFCntUp() == 1) {
         Serial.print(F("[LoRaWAN] Sending: "));
         Serial.println(uplinkPayload.c_str());
         Serial.println(F("[LoRaWAN]   and requesting LinkCheck and DeviceTime"));
