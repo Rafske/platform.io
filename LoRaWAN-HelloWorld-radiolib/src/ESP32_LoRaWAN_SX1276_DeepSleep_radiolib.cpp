@@ -33,6 +33,7 @@ Preferences store;
 #include "config.h"
 
 #include <RadioLib.h>
+#include <TinyGPS++.h>
 
 // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
 // puts these in to the RTC memory which is preserved during deep-sleep
@@ -170,12 +171,31 @@ int16_t lwActivate() {
     return (state);
 }
 
+bool isValid(TinyGPSPlus& gps) {
+    return gps.location.isValid() && gps.date.isValid() && gps.time.isValid() && gps.satellites.isValid() && gps.altitude.isValid() &&
+           gps.speed.isValid() && gps.course.isValid() && gps.hdop.isValid();
+}
+
+bool isUpdated(TinyGPSPlus& gps) {
+    return gps.location.isUpdated() && gps.date.isUpdated() && gps.time.isUpdated() && gps.satellites.isUpdated() &&
+           gps.altitude.isUpdated() && gps.speed.isUpdated() && gps.course.isUpdated() && gps.hdop.isUpdated();
+}
+
 // setup & execute all device functions ...
 void setup() {
+    // Declare the Hardware Serial to be used by the GPS
+    HardwareSerial gpsSerial(2);
+
     Serial.begin(115200);
     while (!Serial)
         ;        // wait for serial to be initalised
     delay(2000); // give time to switch to the serial monitor
+
+    gpsSerial.begin(9600, SERIAL_8N1, 16, 17);
+    delay(10);
+    while (!gpsSerial)
+        ; // wait for serial to be initalised
+
     print_wakeup_reason();
     Serial.println(F("\nSetup"));
 
@@ -196,11 +216,53 @@ void setup() {
     // this is the place to gather the sensor inputs
 
     // build uplinkPayload byte array
-    uint8_t uplinkPayload[] = RADIOLIB_LORAWAN_PAYLOAD;
+    std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
 
     bool frmPending = false;
     do {
+        TinyGPSPlus gps;
+
+        unsigned long start = millis();
+        while (millis() - start < 2000 && !isValid(gps)) {
+            while (gpsSerial.available() > 0) {
+                gps.encode(gpsSerial.read());
+            }
+        }
+
+        if (isValid(gps)) {
+            Serial.println("############### GPS ###############");
+            Serial.print("LAT = ");
+            Serial.println(gps.location.lat(), 6);
+            Serial.print("LONG = ");
+            Serial.println(gps.location.lng(), 6);
+            Serial.print("Date in UTC = ");
+            Serial.println(String(gps.date.year()) + "/" + String(gps.date.month()) + "/" + String(gps.date.day()));
+            Serial.print("Time in UTC = ");
+            Serial.println(String(gps.time.hour()) + ":" + String(gps.time.minute()) + ":" + String(gps.time.second()) + "." +
+                           String(gps.time.centisecond()));
+            Serial.print("Satellites = ");
+            Serial.println(gps.satellites.value());
+            Serial.print("ALT (min) = ");
+            Serial.println(gps.altitude.meters());
+            Serial.print("SPEED (km/h) = ");
+            Serial.println(gps.speed.kmph());
+            Serial.print("COURSE = ");
+            Serial.println(gps.course.deg());
+            Serial.print("HDOP = ");
+            Serial.println(gps.hdop.value() / 100.0);
+            Serial.println("-----------------------------------");
+        } else {
+            Serial.println("GPS positioning data not valid");
+        }
+
         Serial.println(F("Sending uplink"));
+
+        if (isValid(gps)) {
+            uplinkPayload = (std::string("{\"lat\":") + std::to_string(gps.location.lat()) +
+                             ",\"lng\":" + std::to_string(gps.location.lng()) + ",\"alt\":" + std::to_string(gps.altitude.meters()) + "}");
+        } else {
+            uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
+        }
 
         uint8_t fPort = 1;
 
@@ -228,11 +290,28 @@ void setup() {
             Serial.println(F("and requesting LinkCheck and DeviceTime"));
             node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_LINK_CHECK);
             node.sendMacCommandReq(RADIOLIB_LORAWAN_MAC_DEVICE_TIME);
-            state = node.sendReceive(
-                uplinkPayload, sizeof(uplinkPayload) - 1, fPort, downlinkPayload, &downlinkSize, true, &uplinkDetails, &downlinkDetails);
+
+            Serial.print("Sending: ");
+            Serial.println(uplinkPayload.c_str());
+            state = node.sendReceive((uint8_t*) uplinkPayload.c_str(), // cppcheck-suppress cstyleCast
+                                     uplinkPayload.length(),
+                                     fPort,
+                                     downlinkPayload,
+                                     &downlinkSize,
+                                     true,
+                                     &uplinkDetails,
+                                     &downlinkDetails);
         } else {
-            state = node.sendReceive(
-                uplinkPayload, sizeof(uplinkPayload) - 1, fPort, downlinkPayload, &downlinkSize, false, &uplinkDetails, &downlinkDetails);
+            Serial.print("Sending: ");
+            Serial.println(uplinkPayload.c_str());
+            state = node.sendReceive((uint8_t*) uplinkPayload.c_str(), // cppcheck-suppress cstyleCast
+                                     uplinkPayload.length(),
+                                     fPort,
+                                     downlinkPayload,
+                                     &downlinkSize,
+                                     false,
+                                     &uplinkDetails,
+                                     &downlinkDetails);
         }
 
         //  debug((state == RADIOLIB_LORAWAN_DOWNLINK) && (state !=

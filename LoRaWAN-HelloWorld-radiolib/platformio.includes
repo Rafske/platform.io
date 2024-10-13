@@ -2,6 +2,7 @@
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/include
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_radiolib_tmp_v110_1/TinyGPSPlus/src
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_radiolib_tmp_v110_1/RadioLib/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include
