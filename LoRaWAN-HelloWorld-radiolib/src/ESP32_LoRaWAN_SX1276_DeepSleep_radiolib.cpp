@@ -180,6 +180,7 @@ bool gpsIsUpdated(const TinyGPSPlus& gps) {
 }
 
 std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
+uint8_t fPort = 1;
 
 // setup & execute all device functions ...
 void setup() {
@@ -253,9 +254,11 @@ void setup() {
         Serial.println(F("Constructing uplink"));
 
         if (gpsIsValid(gps)) {
-            uplinkPayload = (std::string("{\"lat\":") + std::to_string(gps.location.lat()) +
-                             ",\"lng\":" + std::to_string(gps.location.lng()) + ",\"alt\":" + std::to_string(gps.altitude.meters()) + "}");
+            fPort = 2; // 2 is location
+            uplinkPayload = std::to_string(gps.location.lat()) + "," + std::to_string(gps.location.lng()) + "," +
+                            std::to_string(gps.altitude.meters()) + "," + std::to_string(gps.hdop.value() / 100.0);
         } else {
+            fPort = 1; // 1 is error/warning/info messages
             uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
         }
     } else {
@@ -271,9 +274,6 @@ void setup() {
 }
 
 void loop() {
-    // set fport
-    uint8_t fPort = 1;
-
     // create downlinkPayload byte array
     uint8_t downlinkPayload[255]; // Make sure this fits your plans!
     size_t downlinkSize;          // To hold the actual payload size received
