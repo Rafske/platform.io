@@ -180,7 +180,8 @@ bool gpsIsUpdated(const TinyGPSPlus& gps) {
 }
 
 std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
-uint8_t fPort = 1;
+uint8_t fPort = 1; // For application use: 1 ... 223, reserved for further use: 224 ... 255, reserved for mac commands: 0
+// Here 223 is used for error/info/message
 
 // setup & execute all device functions ...
 void setup() {
@@ -254,11 +255,11 @@ void setup() {
         Serial.println(F("Constructing uplink"));
 
         if (gpsIsValid(gps)) {
-            fPort = 2; // 2 is location
+            fPort = 1; // 1 is location
             uplinkPayload = std::to_string(gps.location.lat()) + "," + std::to_string(gps.location.lng()) + "," +
                             std::to_string(gps.altitude.meters()) + "," + std::to_string(gps.hdop.value() / 100.0);
         } else {
-            fPort = 1; // 1 is error/warning/info messages
+            fPort = 223; // 223 is error/warning/info messages
             uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
         }
     } else {
