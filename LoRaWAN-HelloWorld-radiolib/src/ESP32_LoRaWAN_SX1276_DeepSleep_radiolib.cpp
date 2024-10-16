@@ -27,6 +27,8 @@ Serial.prints - we promise the final result isn't that many lines.
 
 // ##### load the ESP32 preferences facilites
 #include <Preferences.h>
+
+#define RADIOLIB_SPI_PARANOID
 #include <RadioLib.h>
 #include <TinyGPS++.h>
 
@@ -38,6 +40,8 @@ Serial.prints - we promise the final result isn't that many lines.
 RTC_DATA_ATTR uint16_t bootCount = 0;
 RTC_DATA_ATTR uint16_t bootCountSinceUnsuccessfulJoin = 0;
 RTC_DATA_ATTR uint8_t LWsession[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
+
+HardwareSerial gpsSerial(2);
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -55,9 +59,65 @@ void print_wakeup_reason() {
     Serial.println(++bootCount); // increment before printing
 }
 
+bool gpsCheckIfGPSActive() {
+    while (gpsSerial.available() > 0) {
+        gpsSerial.read();
+    }
+
+    // Send a message to check if GPS is active (responsive)
+    byte ackRequest[] = {0xB5, 0x62, 0x0A, 0x04, 0x00, 0x00, 0x0E, 0x34}; // Poll navigation status message
+
+    gpsSerial.write(ackRequest, sizeof(ackRequest));
+    gpsSerial.flush();
+
+    delay(100); // Small delay for response
+
+    if (gpsSerial.available()) {
+        return true; // GPS is active
+    } else {
+        return false; // GPS is not active
+    }
+}
+
+bool gpsPowerSaving() {
+    byte deepSleepCmd[] = {0xB5, 0x62, 0x06, 0x11, 0x02, 0x00, 0x08, 0x01, 0x22, 0x92};
+
+    gpsSerial.write(deepSleepCmd, sizeof(deepSleepCmd));
+    gpsSerial.flush();
+
+    delay(100); // Small delay for response
+
+    return !gpsCheckIfGPSActive();
+}
+
+bool gpsMaxPerformance() {
+    byte wakeCmd[] = {0xB5, 0x62, 0x06, 0x11, 0x02, 0x00, 0x08, 0x00, 0x21, 0x91};
+    gpsSerial.write(wakeCmd, sizeof(wakeCmd));
+    gpsSerial.flush();
+
+    delay(100); // Small delay for response
+
+    bool gpsIsActive = gpsCheckIfGPSActive();
+
+    if (gpsIsActive) {
+        delay(5000); // Wait for GPS to collect data
+    }
+
+    return gpsIsActive;
+}
+
 // put device in to lowest power deep-sleep mode
 void gotoSleep(uint32_t seconds) {
     esp_sleep_enable_timer_wakeup(seconds * 1000UL * 1000UL); // function uses uS
+
+    int16_t result = radio.sleep();
+    Serial.print("[LoRaWAN] Set sleep: ");
+    Serial.println(result == 0 ? "SUCCESS" : "ERROR");
+
+    bool success = gpsPowerSaving();
+    Serial.print("[GPS] Set sleep: ");
+    Serial.println(success ? "SUCCESS" : "ERROR");
+
     Serial.println(F("Sleeping\n"));
     Serial.flush();
 
@@ -190,6 +250,8 @@ void setup() {
         ;        // wait for serial to be initalised
     delay(2000); // give time to switch to the serial monitor
 
+    Serial.println(F("\nSetup"));
+
     print_wakeup_reason();
 
     // setup the radio based on the pinmap (connections) in config.h
@@ -207,14 +269,13 @@ void setup() {
 
         // this is the place to gather the sensor inputs
 
-        Serial.println(F("\nSetup"));
-
         // Declare the Hardware Serial to be used by the GPS
-        HardwareSerial gpsSerial(2);
         gpsSerial.begin(9600, SERIAL_8N1, 16, 17);
-        delay(10);
         while (!gpsSerial)
             ; // wait for serial to be initalised
+
+        Serial.print("[GPS] Wake up: ");
+        Serial.println(gpsMaxPerformance() == true ? "RUNNING" : "ERROR");
 
         TinyGPSPlus gps;
 
@@ -226,33 +287,33 @@ void setup() {
         }
 
         if (gpsIsValid(gps)) {
-            Serial.println("############### GPS ###############");
-            Serial.print("LAT = ");
+            Serial.println("[GPS] ############### GPS ###############");
+            Serial.print("[GPS] LAT = ");
             Serial.println(gps.location.lat(), 6);
-            Serial.print("LONG = ");
+            Serial.print("[GPS] LONG = ");
             Serial.println(gps.location.lng(), 6);
-            Serial.print("Date in UTC = ");
+            Serial.print("[GPS] Date in UTC = ");
             Serial.println(String(gps.date.year()) + "/" + String(gps.date.month()) + "/" + String(gps.date.day()));
-            Serial.print("Time in UTC = ");
+            Serial.print("[GPS] Time in UTC = ");
             Serial.println(String(gps.time.hour()) + ":" + String(gps.time.minute()) + ":" + String(gps.time.second()) + "." +
                            String(gps.time.centisecond()));
-            Serial.print("Satellites = ");
+            Serial.print("[GPS] Satellites = ");
             Serial.println(gps.satellites.value());
-            Serial.print("ALT (min) = ");
+            Serial.print("[GPS] ALT (min) = ");
             Serial.println(gps.altitude.meters());
-            Serial.print("SPEED (km/h) = ");
+            Serial.print("[GPS] SPEED (km/h) = ");
             Serial.println(gps.speed.kmph());
-            Serial.print("COURSE = ");
+            Serial.print("[GPS] COURSE = ");
             Serial.println(gps.course.deg());
-            Serial.print("HDOP = ");
+            Serial.print("[GPS] HDOP = ");
             Serial.println(gps.hdop.value() / 100.0);
-            Serial.println("-----------------------------------");
+            Serial.println("[GPS] -----------------------------------");
         } else {
             Serial.println("GPS positioning data not valid");
         }
 
         // build uplinkPayload byte array
-        Serial.println(F("Constructing uplink"));
+        Serial.println(F("[LoRaWAN] Constructing uplink"));
 
         if (gpsIsValid(gps)) {
             fPort = 1; // 1 is location
@@ -330,13 +391,13 @@ void loop() {
     debug((state < RADIOLIB_ERR_NONE) && (state != RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // This is correct
 
     if (state > 0) {
-        Serial.println(F("Downlink received"));
+        Serial.println(F("[LoRaWAN] Downlink received"));
 
         if (downlinkSize > 0) {
             Serial.print(F("[LoRaWAN] Payload:\t"));
             arrayDump(downlinkPayload, downlinkSize);
         } else {
-            Serial.println(F("<MAC commands only>"));
+            Serial.println(F("[LoRaWAN] <MAC commands only>"));
         }
 
         Serial.println(F("[LoRaWan] Signal:"));
