@@ -269,7 +269,7 @@ void setup() {
             ; // wait for serial to be initalised
 
         Serial.print("[GPS] Wake up: ");
-        Serial.println(gpsMaxPerformance() == true ? "RUNNING" : "ERROR");
+        Serial.println(gpsMaxPerformance() ? "RUNNING" : "ERROR");
 
         TinyGPSPlus gps;
 
