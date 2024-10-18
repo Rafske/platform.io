@@ -72,11 +72,7 @@ bool gpsCheckIfGPSActive() {
 
     delay(100); // Small delay for response
 
-    if (gpsSerial.available()) {
-        return true; // GPS is active
-    } else {
-        return false; // GPS is not active
-    }
+    return gpsSerial.available() > 0;
 }
 
 bool gpsPowerSaving() {
@@ -98,7 +94,6 @@ bool gpsMaxPerformance() {
     delay(100); // Small delay for response
 
     bool gpsIsActive = gpsCheckIfGPSActive();
-
     if (gpsIsActive) {
         delay(5000); // Wait for GPS to collect data
     }
@@ -212,8 +207,7 @@ int16_t lwActivate() {
             Serial.println(F(" seconds"));
 
             gotoSleep(sleepForSeconds);
-
-        } // if activateOTAA state
+        }
     } // while join
 
     Serial.println(F("Joined"));
