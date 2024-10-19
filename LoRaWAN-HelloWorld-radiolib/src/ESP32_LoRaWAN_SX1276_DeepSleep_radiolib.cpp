@@ -40,6 +40,7 @@ Serial.prints - we promise the final result isn't that many lines.
 RTC_DATA_ATTR uint16_t bootCount = 0;
 RTC_DATA_ATTR uint16_t bootCountSinceUnsuccessfulJoin = 0;
 RTC_DATA_ATTR uint8_t LWsession[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
+RTC_DATA_ATTR bool isFirstFix = true;
 
 HardwareSerial gpsSerial(2);
 
@@ -68,7 +69,6 @@ bool gpsCheckIfGPSActive() {
     byte ackRequest[] = {0xB5, 0x62, 0x0A, 0x04, 0x00, 0x00, 0x0E, 0x34}; // Poll navigation status message
 
     gpsSerial.write(ackRequest, sizeof(ackRequest));
-    gpsSerial.flush();
 
     delay(100); // Small delay for response
 
@@ -79,9 +79,10 @@ bool gpsPowerSaving() {
     byte deepSleepCmd[] = {0xB5, 0x62, 0x06, 0x11, 0x02, 0x00, 0x08, 0x01, 0x22, 0x92};
 
     gpsSerial.write(deepSleepCmd, sizeof(deepSleepCmd));
-    gpsSerial.flush();
 
     delay(100); // Small delay for response
+
+    Serial.println("[GPS] Power save mode: ON");
 
     return !gpsCheckIfGPSActive();
 }
@@ -89,7 +90,6 @@ bool gpsPowerSaving() {
 bool gpsMaxPerformance() {
     byte wakeCmd[] = {0xB5, 0x62, 0x06, 0x11, 0x02, 0x00, 0x08, 0x00, 0x21, 0x91};
     gpsSerial.write(wakeCmd, sizeof(wakeCmd));
-    gpsSerial.flush();
 
     delay(100); // Small delay for response
 
@@ -97,6 +97,8 @@ bool gpsMaxPerformance() {
     if (gpsIsActive) {
         delay(5000); // Wait for GPS to collect data
     }
+
+    Serial.println("[GPS] Max performance mode: ON");
 
     return gpsIsActive;
 }
@@ -108,10 +110,6 @@ void gotoSleep(uint32_t seconds) {
     int16_t result = radio.sleep();
     Serial.print("[LoRaWAN] Set sleep: ");
     Serial.println(result == 0 ? "SUCCESS" : "ERROR");
-
-    bool success = gpsPowerSaving();
-    Serial.print("[GPS] Set sleep: ");
-    Serial.println(success ? "SUCCESS" : "ERROR");
 
     Serial.println(F("Sleeping\n"));
     Serial.flush();
@@ -268,9 +266,6 @@ void setup() {
         while (!gpsSerial)
             ; // wait for serial to be initalised
 
-        Serial.print("[GPS] Wake up: ");
-        Serial.println(gpsMaxPerformance() ? "RUNNING" : "ERROR");
-
         TinyGPSPlus gps;
 
         unsigned long start = millis();
@@ -302,6 +297,12 @@ void setup() {
             Serial.print("[GPS] HDOP = ");
             Serial.println(gps.hdop.value() / 100.0);
             Serial.println("[GPS] -----------------------------------");
+
+            if (isFirstFix) {
+                isFirstFix = false;
+
+                gpsPowerSaving();
+            }
         } else {
             Serial.println("GPS positioning data not valid");
         }
@@ -314,7 +315,7 @@ void setup() {
             uplinkPayload = std::to_string(gps.location.lat()) + "," + std::to_string(gps.location.lng()) + "," +
                             std::to_string(gps.altitude.meters()) + "," + std::to_string(gps.hdop.value() / 100.0);
         } else {
-            fPort = 223; // 223 is error/warning/info messages
+            fPort = 222; // 222 is warning. 223 is error, 222 warning, 221 info message
             uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
         }
     } else {
