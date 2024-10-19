@@ -383,7 +383,7 @@ void loop() {
     //  debug((state == RADIOLIB_LORAWAN_DOWNLINK) && (state !=
     //  RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // wrong
     //  condition
-    debug((state < RADIOLIB_ERR_NONE) && (state != RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // This is correct
+    debug((state < RADIOLIB_ERR_NONE), F("Error in sendReceive"), state, false); // This is correct
 
     if (state > 0) {
         Serial.println(F("[LoRaWAN] Downlink received"));
@@ -396,7 +396,6 @@ void loop() {
         }
 
         Serial.println(F("[LoRaWan] Signal:"));
-        // print RSSI (Received Signal Strength Indicator)
         Serial.print(F("[LoRaWAN]     RSSI:               "));
         Serial.print(radio.getRSSI());
         Serial.println(F(" dBm"));
