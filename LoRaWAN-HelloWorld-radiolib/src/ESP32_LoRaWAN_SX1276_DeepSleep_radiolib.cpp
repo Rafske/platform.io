@@ -60,6 +60,40 @@ void print_wakeup_reason() {
     Serial.println(++bootCount); // increment before printing
 }
 
+void addChecksum(uint8_t* msg, size_t len) {
+    uint8_t ckA = 0, ckB = 0;
+    for (size_t i = 2; i < len - 2; i++) { // Skip the 2-byte header
+        ckA += msg[i];
+        ckB += ckA;
+    }
+    msg[len - 2] = ckA;
+    msg[len - 1] = ckB;
+}
+
+void gpsSetPPSDutyCycle() {
+    byte ackRequest[] = {
+        0xB5, 0x62, 0x06, 0x07, // CFG TP
+        0x14, 0x00,             // Payload size (20 Bytes)
+        0x40, 0x42, 0x0F, 0x00, // Time interval for time pulse (1 000 0000 micro seconds)
+        0x20, 0xA1, 0x07, 0x00, // Length of time pulse (500 000 micro seconds)
+        0xFF,                   // Time pulse config setting: +1 = positive, 0 = inactive, -1 = negative
+        0x01,                   // Alignment to reference time: 0 = UTC, 1 = GPS, 2, Local Time
+        0x00,                   // Bitmask (blink only when synced (0x00) blink always (0x01)
+        0x00,                   // Reserved1
+        0x32, 0x00,             // Antenna cable delay [ns]
+        0x00, 0x00,             // Receiver RF groupe delay [ns]
+        0x00, 0x00, 0x00, 0x00, // User defined delay [ns]
+        0x00, 0x00              // Check sum
+
+    };
+
+    addChecksum(ackRequest, sizeof(ackRequest));
+
+    gpsSerial.write(ackRequest, sizeof(ackRequest));
+
+    delay(300);
+}
+
 bool gpsCheckIfGPSActive() {
     while (gpsSerial.available() > 0) {
         gpsSerial.read();
@@ -270,10 +304,15 @@ void setup() {
 
         unsigned long start = millis();
         while (millis() - start < 2000 && !gpsIsValid(gps)) {
-            while (gpsSerial.available() > 0) {
-                gps.encode(gpsSerial.read());
+            while (gpsSerial.available() > 0 && !gpsIsValid(gps)) {
+                int data = gpsSerial.read();
+                gps.encode(data);
+                if (std::isprint(data) || std::isspace(data)) {
+                    Serial.print((char) data);
+                }
             }
         }
+        Serial.println();
 
         if (gpsIsValid(gps)) {
             Serial.println("[GPS] ############### GPS ###############");
@@ -284,8 +323,7 @@ void setup() {
             Serial.print("[GPS] Date in UTC = ");
             Serial.println(String(gps.date.year()) + "/" + String(gps.date.month()) + "/" + String(gps.date.day()));
             Serial.print("[GPS] Time in UTC = ");
-            Serial.println(String(gps.time.hour()) + ":" + String(gps.time.minute()) + ":" + String(gps.time.second()) + "." +
-                           String(gps.time.centisecond()));
+            Serial.println(String(gps.time.hour()) + ":" + String(gps.time.minute()) + ":" + String(gps.time.second()));
             Serial.print("[GPS] Satellites = ");
             Serial.println(gps.satellites.value());
             Serial.print("[GPS] ALT (min) = ");
