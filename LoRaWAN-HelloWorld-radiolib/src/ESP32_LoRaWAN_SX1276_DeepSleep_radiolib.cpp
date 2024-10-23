@@ -44,6 +44,137 @@ RTC_DATA_ATTR bool isFirstFix = true;
 
 HardwareSerial gpsSerial(2);
 
+//----------------------------------GPS unit functions------------------------------------------------
+// Send a byte array of UBX protocol to the GPS
+void sendUBX(const uint8_t* MSG, uint32_t len, long timeout = 3000) {
+    uint32_t CK_A = 0, CK_B = 0;
+    uint8_t sum1 = 0x00, sum2 = 0x00;
+    uint8_t fullPacket[len + 4];
+
+    for (int i = 0; i < len; i++) {
+        fullPacket[i + 2] = MSG[i];
+    }
+
+    Serial.println();
+    fullPacket[0] = 0xB5;
+    fullPacket[1] = 0x62;
+
+    // Calculate checksum
+    for (int i = 0; i < len; i++) {
+        CK_A = CK_A + MSG[i];
+        CK_B = CK_B + CK_A;
+    }
+
+    sum1 = CK_A & 0xff; // Mask the checksums to be one byte
+    sum2 = CK_B & 0xff;
+
+    fullPacket[len + 2] = sum1; // Add the checksums to the end of the UBX packet
+    fullPacket[len + 3] = sum2;
+
+    Serial.print("Checksum 1 = ");
+    Serial.println(sum1, HEX);
+
+    Serial.print("Checksum 2 = ");
+    Serial.println(sum2, HEX);
+
+    Serial.print("fullPacket is: ");
+
+    for (int i = 0; i < (len + 4); i++) {
+        Serial.print(fullPacket[i], HEX); // Print out a byt of the UBX data packet to the serial monitor
+        Serial.print(", ");
+        gpsSerial.write(fullPacket[i]); // Send a byte of the UBX data packet to the GPS unit
+    }
+    Serial.println();
+} // end function
+
+// Calculate expected UBX ACK packet and parse UBX response from GPS--------------------------
+boolean getUBX_ACK(const uint8_t* MSG, uint32_t len) {
+    uint8_t b;
+    uint8_t ackByteID = 0;
+    uint8_t ackPacket[10];
+    unsigned long startTime = millis();
+    uint32_t CK_A = 0, CK_B = 0;
+    boolean notAcknowledged = false;
+
+    Serial.print("Reading ACK response: ");
+    // Construct the expected ACK packet
+    ackPacket[0] = 0xB5; // header
+    ackPacket[1] = 0x62; // header
+    ackPacket[2] = 0x05; // class
+    ackPacket[3] = 0x01; // id
+    ackPacket[4] = 0x02; // length
+    ackPacket[5] = 0x00;
+    ackPacket[6] = MSG[0]; // MGS class
+    ackPacket[7] = MSG[1]; // MSG id
+    ackPacket[8] = 0;      // CK_A
+    ackPacket[9] = 0;      // CK_B
+
+    // Calculate the checksums
+    for (uint8_t i = 2; i < 8; i++) {
+        CK_A = CK_A + ackPacket[i];
+        CK_B = CK_B + CK_A;
+    }
+
+    ackPacket[8] = CK_A & 0xff; // Mask the checksums to be one byte
+    ackPacket[9] = CK_B & 0xff;
+
+    Serial.println("Searching for UBX ACK response:");
+    Serial.print("  Target data packet: ");
+
+    for (int i = 0; i < 10; i++) {
+        Serial.print(ackPacket[i], HEX);
+        Serial.print(", ");
+    }
+
+    Serial.println();
+    Serial.print("  Candidate   packet: ");
+
+    while (1) {
+        // Test for success
+        if (ackByteID > 9) {
+            // All packets in order!
+            Serial.println(" (Response received from GPS unit:)");
+            if (notAcknowledged) {
+                Serial.println("ACK-NAK!");
+            } else {
+                Serial.println("ACK-ACK!");
+                return true;
+            }
+        }
+
+        // Timeout if no valid response in 5 seconds
+        if (millis() - startTime > 5000) {
+            Serial.println("<<<Response timed out!>>>");
+            return false;
+        }
+
+        // Make sure data is available to read
+        if (gpsSerial.available()) {
+            b = gpsSerial.read();
+
+            // Check that bytes arrive in sequence as per expected ACK packet
+            if (b == ackPacket[ackByteID]) {
+                ackByteID++;
+                Serial.print(b, HEX);
+                Serial.print(", ");
+                // Check if message was not acknowledged
+                if (ackByteID == 3) {
+                    b = gpsSerial.read();
+                    if (b == 0x00) {
+                        notAcknowledged = true;
+                        ackByteID++;
+                    }
+                }
+            } else if (ackByteID > 0) {
+                ackByteID = 0; // Reset and look again, invalid order
+                Serial.print(b, HEX);
+                Serial.println(" -->NOPE!");
+                Serial.print("Candidate   packet: ");
+            }
+        }
+    } // end while
+} // end function
+
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
 // for the complete set of options
@@ -271,6 +402,14 @@ uint8_t fPort = 1; // For application use: 1 ... 223, reserved for further use: 
 
 // setup & execute all device functions ...
 void setup() {
+    // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
+    // puts these in to the RTC memory which is preserved during deep-sleep
+    //    bootCount = 0;
+    //    bootCountSinceUnsuccessfulJoin = 0;
+    //    for (int i = 0; i < RADIOLIB_LORAWAN_SESSION_BUF_SIZE; i++) {
+    //        LWsession[i] = 0;
+    //    }
+
     Serial.begin(115200);
     while (!Serial)
         ;        // wait for serial to be initalised
@@ -301,6 +440,16 @@ void setup() {
             ; // wait for serial to be initalised
 
         TinyGPSPlus gps;
+
+        uint8_t disableGLL[] = {0x06, 0x01, 0x03, 0x00, 0xF0, 0x01, 0x00};
+        uint32_t len = sizeof(disableGLL) / sizeof(uint8_t);
+
+        while (gpsSerial.available()) {
+            gpsSerial.read();
+        }
+
+        sendUBX(disableGLL, len);
+        getUBX_ACK(disableGLL, len);
 
         unsigned long start = millis();
         while (millis() - start < 2000 && !gpsIsValid(gps)) {
