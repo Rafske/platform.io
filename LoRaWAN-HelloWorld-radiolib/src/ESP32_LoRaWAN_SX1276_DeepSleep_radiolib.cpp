@@ -498,3 +498,6 @@ void loop() {
         gotoSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);
     }
 }
+
+// Does it respond to a UBX-MON-VER request?
+// uint8_t ubx_mon_ver[] = { 0xB5,0x62,0x0A,0x04,0x00,0x00,0x0E,0x34 };
