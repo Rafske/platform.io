@@ -13,19 +13,18 @@ namespace GAIT {
         while (!gpsSerial)
             ; // wait for serial to be initalised
 
+        while (gpsSerial.available()) {
+            gpsSerial.read();
+        }
+
         unsigned long start = millis();
-        while (millis() - start < 2000 && !gpsIsValid()) {
-            while (gpsSerial.available() > 0 && !gpsIsValid()) {
-                int data = gpsSerial.read();
-                gps.encode(data);
-                if (std::isprint(data) || std::isspace(data)) {
-                    Serial.print((char) data);
-                }
+        while (millis() - start < 2000 && !isValid()) {
+            while (gpsSerial.available() > 0 && !isValid()) {
+                gps.encode(gpsSerial.read());
             }
         }
-        Serial.println();
 
-        if (gpsIsValid()) {
+        if (isValid()) {
             Serial.println(F("[GPS] ############### GPS ###############"));
             Serial.print(F("[GPS] LAT = "));
             Serial.println(gps.location.lat(), 6);
@@ -55,6 +54,10 @@ namespace GAIT {
         } else {
             Serial.println(F("GPS positioning data not valid"));
         }
+    }
+
+    void GPS::goToSleep() {
+        // Needs to be filled
     }
 
     double GPS::getLatitude() {
@@ -292,12 +295,12 @@ namespace GAIT {
         return gpsIsActive;
     }
 
-    bool GPS::gpsIsValid() {
+    bool GPS::isValid() {
         return gps.location.isValid() && gps.date.isValid() && gps.time.isValid() && gps.satellites.isValid() && gps.altitude.isValid() &&
                gps.speed.isValid() && gps.course.isValid() && gps.hdop.isValid();
     }
 
-    bool GPS::gpsIsUpdated() {
+    bool GPS::isUpdated() {
         return gps.location.isUpdated() && gps.date.isUpdated() && gps.time.isUpdated() && gps.satellites.isUpdated() &&
                gps.altitude.isUpdated() && gps.speed.isUpdated() && gps.course.isUpdated() && gps.hdop.isUpdated();
     }

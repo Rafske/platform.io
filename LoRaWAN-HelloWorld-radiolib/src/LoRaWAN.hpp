@@ -11,7 +11,7 @@ namespace GAIT {
     static void arrayDump(uint8_t* buffer, uint16_t len);
 
     uint16_t bootCountSinceUnsuccessfulJoin = 0;
-    uint8_t LWsession[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
+    uint8_t session[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
 
     template <typename LoRaModule>
     LoRaWAN<LoRaModule>::LoRaWAN(const LoRaWANBand_t& region,
@@ -31,8 +31,10 @@ namespace GAIT {
 
     template <typename LoRaModule>
     void LoRaWAN<LoRaModule>::goToSleep() {
-        int16_t result = radio.sleep();
         Serial.print(F("[LoRaWAN] Set sleep: "));
+
+        int16_t result = radio.sleep();
+
         Serial.println(result == 0 ? F("SUCCESS") : F("ERROR"));
     }
 
@@ -59,7 +61,7 @@ namespace GAIT {
             debug(state != RADIOLIB_ERR_NONE, F("Restoring nonces buffer failed"), state, false);
 
             // recall session from RTC deep-sleep preserved variable
-            state = node.setBufferSession(LWsession); // send them to LoRaWAN stack
+            state = node.setBufferSession(session); // send them to LoRaWAN stack
 
             // if we have booted more than once we should have a session to restore, so
             // report any failure otherwise no point saying there's been a failure when
@@ -156,7 +158,7 @@ namespace GAIT {
 
                 // now save session to RTC memory
                 const uint8_t* persist = node.getBufferSession();
-                memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
+                memcpy(session, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
 
                 // wait until next uplink - observing legal & TTN FUP constraints
                 gotoSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);
@@ -165,7 +167,13 @@ namespace GAIT {
     }
 
     template <typename LoRaModule>
-    void LoRaWAN<LoRaModule>::loop(uint8_t fPort, std::string& uplinkPayload) {
+    void LoRaWAN<LoRaModule>::setUplinkPayload(uint8_t fPort, const std::string& uplinkPayload) {
+        this->fPort = fPort;
+        this->uplinkPayload = uplinkPayload;
+    }
+
+    template <typename LoRaModule>
+    void LoRaWAN<LoRaModule>::loop() {
         // create downlinkPayload byte array
         uint8_t downlinkPayload[255]; // Make sure this fits your plans!
         size_t downlinkSize;          // To hold the actual payload size received
@@ -278,7 +286,7 @@ namespace GAIT {
         if (state <= 0 || !downlinkDetails.frmPending) {
             // now save session to RTC memory
             const uint8_t* persist = node.getBufferSession();
-            memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
+            memcpy(session, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
 
             // wait until next uplink - observing legal & TTN FUP constraints
             gotoSleep(RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS);

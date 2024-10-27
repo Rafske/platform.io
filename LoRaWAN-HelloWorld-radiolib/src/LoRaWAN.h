@@ -11,7 +11,7 @@ namespace GAIT {
     // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
     // puts these in to the RTC memory which is preserved during deep-sleep
     extern RTC_DATA_ATTR uint16_t bootCountSinceUnsuccessfulJoin;
-    extern RTC_DATA_ATTR uint8_t LWsession[];
+    extern RTC_DATA_ATTR uint8_t session[];
 
     template <typename LoRaModule>
     class LoRaWAN {
@@ -30,14 +30,23 @@ namespace GAIT {
         void goToSleep();
 
         void setup(uint16_t bootCount);
-        void loop(uint8_t fPort, std::string& uplinkPayload);
+
+        void setUplinkPayload(uint8_t fPort, const std::string& uplinkPayload);
+
+        void loop();
 
     private:
         int16_t activate(uint16_t bootCount);
 
-        //    RADIOLIB_LORA_MODULE radio;
         LoRaModule radio;
         LoRaWANNode node;
+
+        // For application use: 1 ... 223,
+        // reserved for further use: 224 ... 255,
+        // reserved for mac commands: 0
+        // Here 221 (info), 222 (warning), 223 (error) are used
+        uint8_t fPort = 221;
+        std::string uplinkPayload;
     };
 
 } // namespace GAIT

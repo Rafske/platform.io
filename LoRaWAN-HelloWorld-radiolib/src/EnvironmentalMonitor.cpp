@@ -25,7 +25,6 @@ Serial.prints - we promise the final result isn't that many lines.
 #pragma error("This is not the example your device is looking for - ESP32 only")
 #endif
 
-// ##### load the ESP32 preferences facilites
 #include <Preferences.h>
 
 RTC_DATA_ATTR uint16_t bootCount = 0;
@@ -33,7 +32,7 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 #include "GPS.h"
 #include "LoRaWAN.hpp"
 
-static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWan(RADIOLIB_LORA_REGION,
+static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORAWAN_JOIN_EUI,
                                                    RADIOLIB_LORAWAN_DEV_EUI,
                                                    (uint8_t[16]) {RADIOLIB_LORAWAN_APP_KEY},
@@ -58,59 +57,50 @@ void print_wakeup_reason() {
     Serial.println(++bootCount); // increment before printing
 }
 
-// put device in to lowest power deep-sleep mode
 void gotoSleep(uint32_t seconds) {
-    loRaWan.goToSleep();
+    loRaWAN.goToSleep();
+    gps.goToSleep();
+
+    Serial.println("[APP] Go to sleep");
 
     esp_sleep_enable_timer_wakeup(seconds * 1000UL * 1000UL); // function uses uS
     esp_deep_sleep_start();
 
-    // if this appears in the serial debug, we didn't go to sleep!
-    // so take defensive action so we don't continually uplink
     Serial.println(F("\n\n### Sleep failed, delay of 5 minutes & then restart ###\n"));
     delay(5UL * 60UL * 1000UL);
     ESP.restart();
 }
 
-std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
-uint8_t fPort = 1;
-// For application use: 1 ... 223,
-// reserved for further use: 224 ... 255,
-// reserved for mac commands: 0
-// Here 221 (info), 222 (warning), 223 (error) are used
-
-// setup & execute all device functions ...
 void setup() {
     Serial.begin(115200);
     while (!Serial)
         ;        // wait for serial to be initalised
     delay(2000); // give time to switch to the serial monitor
 
-    Serial.println(F("\nSetup"));
-
     print_wakeup_reason();
 
-    loRaWan.setup(bootCount);
+    Serial.println(F("\nSetup"));
 
-    // build uplinkPayload byte array
-    Serial.println(F("[APP] Constructing uplink"));
+    loRaWAN.setup(bootCount);
 
-    Serial.println(F("Aquire data"));
+    Serial.println(F("[APP] Aquire data and construct LoRaWAN uplink"));
 
     gps.setup();
 
-    if (gps.gpsIsValid()) {
+    std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
+    uint8_t fPort = 221;
+
+    if (gps.isValid()) {
         fPort = 1; // 1 is location
         uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
                         std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
-    } else {
-        fPort = 222; // 222 is warning. 223 is error, 222 warning, 221 info message
-        uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     }
+
+    loRaWAN.setUplinkPayload(fPort, uplinkPayload);
 }
 
 void loop() {
-    loRaWan.loop(fPort, uplinkPayload);
+    loRaWAN.loop();
 }
 
 // Does it respond to a UBX-MON-VER request?
