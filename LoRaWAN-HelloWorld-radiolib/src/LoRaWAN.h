@@ -4,6 +4,7 @@
 #include <RadioLib.h>
 #include <cstdint>
 #include <esp_attr.h>
+#include <functional>
 #include <string>
 
 namespace GAIT {
@@ -32,11 +33,14 @@ namespace GAIT {
         void setup(uint16_t bootCount);
 
         void setUplinkPayload(uint8_t fPort, const std::string& uplinkPayload);
+        void setDownlinkCB(std::function<void(uint8_t, uint8_t*, std::size_t)> downlinkCB);
 
         void loop();
 
     private:
         int16_t activate(uint16_t bootCount);
+
+        std::function<void(uint8_t fPort, uint8_t*, std::size_t)> downlinkCB;
 
         LoRaModule radio;
         LoRaWANNode node;

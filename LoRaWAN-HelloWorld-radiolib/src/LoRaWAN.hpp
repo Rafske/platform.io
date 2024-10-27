@@ -143,6 +143,11 @@ namespace GAIT {
     }
 
     template <typename LoRaModule>
+    void LoRaWAN<LoRaModule>::setDownlinkCB(std::function<void(uint8_t, uint8_t*, std::size_t)> downlinkCB) {
+        this->downlinkCB = downlinkCB;
+    }
+
+    template <typename LoRaModule>
     void LoRaWAN<LoRaModule>::setup(uint16_t bootCount) {
         Serial.println(F("Initalise the radio"));
 
@@ -223,6 +228,9 @@ namespace GAIT {
             if (downlinkSize > 0) {
                 Serial.print(F("[LoRaWAN] Payload:\t"));
                 arrayDump(downlinkPayload, downlinkSize);
+                if (downlinkCB) {
+                    downlinkCB(downlinkDetails.fPort, downlinkPayload, downlinkSize);
+                }
             } else {
                 Serial.println(F("[LoRaWAN] <MAC commands only>"));
             }

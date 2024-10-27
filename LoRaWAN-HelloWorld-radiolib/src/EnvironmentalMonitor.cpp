@@ -83,6 +83,13 @@ void setup() {
 
     loRaWAN.setup(bootCount);
 
+    loRaWAN.setDownlinkCB([](uint8_t fPort, uint8_t* downlinkPayload, std::size_t downlinkSize) {
+        Serial.print(F("[APP] Payload: fPort="));
+        Serial.print(fPort);
+        Serial.print(", ");
+        GAIT::arrayDump(downlinkPayload, downlinkSize);
+    });
+
     Serial.println(F("[APP] Aquire data and construct LoRaWAN uplink"));
 
     gps.setup();
