@@ -189,11 +189,11 @@ namespace GAIT {
         static LoRaWANEvent_t downlinkDetails{};
 
         int16_t state = 0;
-        if (downlinkDetails.frmPending) { // At first run this is false due to initialization
-            Serial.println(F("[LoRaWAN] Sending request for pending frame:"));
-            state = node.sendReceive((uint8_t*) (""), // cppcheck-suppress cstyleCast
+        if (downlinkDetails.frmPending || downlinkDetails.confirmed) { // At first run this is false due to initialization
+            Serial.println(F("[LoRaWAN] Sending request for pending frame"));
+            state = node.sendReceive((uint8_t*) "", // cppcheck-suppress cstyleCast
                                      0,
-                                     fPort,
+                                     220,
                                      downlinkPayload,
                                      &downlinkSize,
                                      false,
@@ -291,7 +291,7 @@ namespace GAIT {
             Serial.println(F("[LoRaWAN] No downlink received"));
         }
 
-        if (state <= 0 || !downlinkDetails.frmPending) {
+        if (state <= 0 || !(downlinkDetails.frmPending || downlinkDetails.confirmed)) {
             // now save session to RTC memory
             const uint8_t* persist = node.getBufferSession();
             memcpy(session, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);

@@ -45,10 +45,11 @@ namespace GAIT {
         LoRaModule radio;
         LoRaWANNode node;
 
-        // For application use: 1 ... 223,
-        // reserved for further use: 224 ... 255,
         // reserved for mac commands: 0
+        // Here for application use: 1 ... 219,
+        // Here 220 (request for further downlinks)
         // Here 221 (info), 222 (warning), 223 (error) are used
+        // reserved for further use: 224 ... 255,
         uint8_t fPort = 221;
         std::string uplinkPayload;
     };
