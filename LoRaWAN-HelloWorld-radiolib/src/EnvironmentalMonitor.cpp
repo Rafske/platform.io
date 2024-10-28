@@ -25,12 +25,17 @@ Serial.prints - we promise the final result isn't that many lines.
 #pragma error("This is not the example your device is looking for - ESP32 only")
 #endif
 
+#include <DallasTemperature.h>
+#include <OneWire.h>
 #include <Preferences.h>
 
 RTC_DATA_ATTR uint16_t bootCount = 0;
 
 #include "GPS.h"
 #include "LoRaWAN.hpp"
+
+OneWire oneWire(DALLAS_TEMPERATURE_PIN);
+DallasTemperature sensors(&oneWire);
 
 static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORAWAN_JOIN_EUI,
@@ -97,10 +102,29 @@ void setup() {
     std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     uint8_t fPort = 221;
 
-    if (gps.isValid()) {
-        fPort = 1; // 1 is location
-        uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
-                        std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
+#define SENSOR_COUNT 2
+
+    sensors.begin();
+
+    switch (bootCount % SENSOR_COUNT) {
+        case 0:
+            // Position
+            if (gps.isValid()) {
+                fPort = bootCount % SENSOR_COUNT + 1; // 1 is location
+                uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
+                                std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
+            }
+            break;
+        case 1:
+            // Temperature
+            fPort = bootCount % SENSOR_COUNT + 1;
+            sensors.requestTemperatures();
+            uplinkPayload = std::to_string(sensors.getTempCByIndex(0));
+            break;
+        case 2:
+            // PH-value
+            fPort = bootCount % SENSOR_COUNT + 1;
+            break;
     }
 
     loRaWAN.setUplinkPayload(fPort, uplinkPayload);
