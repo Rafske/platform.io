@@ -1,0 +1,96 @@
+function decodeUplink(input) {
+  // Extract the string message from the input object
+  let bytes = input.bytes;
+  
+  // Convert the byte array to a string
+  let decodedString = String.fromCharCode.apply(null, bytes);
+  
+  // Split the payload by colons
+  let values = decodedString.split(",");
+
+  // Parse each value as a number
+  let variables = values.map(Number);
+
+  // Define variable payload
+  let payload;
+  
+  // fPort is used to distinguish message types
+  switch(input.fPort) {
+    case 1: // Location messages
+      payload = {
+        // For TTN Coverage
+        latitude: variables[0] || 0,
+        longitude: variables[1] || 0,
+        altitude: variables[2] || 0,
+        hdop: variables[3] || 0,
+        // Message to application
+        data: {
+          f_port: input.fPort,
+          latitude:  variables[0] || 0,
+          longitude:  variables[1] || 0,
+          altitude: variables[2] || 0,
+          hdop: variables[3] || 0
+        }
+      };
+      break;
+    case 221: // Info messages
+      payload = {
+        data: { 
+          f_port: input.fPort,
+          message: decodedString,
+          infos: [
+           {
+            code: 1, // Info code
+            message: [ "Info: " + decodedString ]
+           }
+          ]
+        }
+      };
+      break;
+    case 222: // Warning messages
+      payload = {
+        data: { 
+          f_port: input.fPort,
+          message: decodedString,
+          warnings: [
+           {
+            code: 1, // Warning code
+            message: [ "Warning: " + decodedString ]
+           }
+          ]
+        }
+      };
+      break;
+    case 223: // Error messages
+      payload = {
+        data: { 
+          f_port: input.fPort,
+          message: decodedString,
+          errors: [
+           {
+            code: 1, // Error code
+            message: [ "Error: " + decodedString ]
+           }
+          ]
+        }
+      };
+      break;
+    default: // Error messages
+      payload = {
+        data: { 
+          f_port: input.fPort,
+          message: decodedString,
+          errors: [
+           { 
+            code: 100, // Error code NO_KNOWN_FPORT
+            message: "Error (fatal): fPort " + input.fPort + " in uplink not used"
+           }
+          ]
+        }
+      };
+      break;
+  }
+
+  // Return the decoded message in a JSON object format
+  return payload;
+}

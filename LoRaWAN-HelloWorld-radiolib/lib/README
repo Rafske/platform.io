@@ -31,6 +31,8 @@ and a contents of `src/main.c`:
 ```
 #include <Foo.h>
 #include <Bar.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 int main (void)
 {

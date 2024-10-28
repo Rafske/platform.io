@@ -87,7 +87,7 @@ namespace GAIT {
         // if we got here, there was no session to restore, so start trying to join
         state = RADIOLIB_ERR_NETWORK_NOT_JOINED;
         while (state != RADIOLIB_LORAWAN_NEW_SESSION) { // Original code
-            Serial.println(F("Join ('login') to the LoRaWAN Network"));
+            Serial.println(F("Join ('login') to the LoRaWAN   Network"));
             state = node.activateOTAA(RADIOLIB_LORAWAN_DATA_RATE_UNUSED, &joinEvent);
 
             // ##### save the join counters (nonces) to permanent store
