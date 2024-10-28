@@ -4,5 +4,7 @@ platformio.ini
 src/EnvironmentalMonitor.cpp
 src/GPS.h
 src/LoRaWAN.hpp
+src/DS18B20.cpp
+src/DS18B20.h
 src/LoRaWAN.h
 src/GPS.cpp

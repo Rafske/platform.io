@@ -25,17 +25,13 @@ Serial.prints - we promise the final result isn't that many lines.
 #pragma error("This is not the example your device is looking for - ESP32 only")
 #endif
 
-#include <DallasTemperature.h>
-#include <OneWire.h>
 #include <Preferences.h>
 
 RTC_DATA_ATTR uint16_t bootCount = 0;
 
+#include "DS18B20.h"
 #include "GPS.h"
 #include "LoRaWAN.hpp"
-
-OneWire oneWire(DALLAS_TEMPERATURE_PIN);
-DallasTemperature sensors(&oneWire);
 
 static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORAWAN_JOIN_EUI,
@@ -45,6 +41,8 @@ static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORA_MODULE_BITMAP);
 
 static GAIT::GPS gps(2, 9600, SERIAL_8N1, 16, 17);
+
+static GAIT::DS18B20 ds18B20;
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -104,26 +102,24 @@ void setup() {
 
 #define SENSOR_COUNT 2
 
-    sensors.begin();
-
-    switch (bootCount % SENSOR_COUNT) {
+    uint8_t currentSensor = (bootCount - 1) % SENSOR_COUNT; // Starting at zero (0)
+    switch (currentSensor) {
         case 0:
             // Position
             if (gps.isValid()) {
-                fPort = bootCount % SENSOR_COUNT + 1; // 1 is location
+                fPort = currentSensor + 1; // 1 is location
                 uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
                                 std::to_string(gps.getAltitude()) + "," + std::to_string(gps.getHdop());
             }
             break;
         case 1:
             // Temperature
-            fPort = bootCount % SENSOR_COUNT + 1;
-            sensors.requestTemperatures();
-            uplinkPayload = std::to_string(sensors.getTempCByIndex(0));
+            fPort = currentSensor + 1;
+            uplinkPayload = std::to_string(ds18B20.getTemperature());
             break;
         case 2:
             // PH-value
-            fPort = bootCount % SENSOR_COUNT + 1;
+            fPort = currentSensor + 1;
             break;
     }
 
