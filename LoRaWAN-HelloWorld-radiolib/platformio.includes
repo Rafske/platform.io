@@ -2,6 +2,8 @@
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/include
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/DallasTemperature
+/home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/OneWire
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/TinyGPSPlus/src
 /home/voc/projects/PlatformIO/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v110_sx1276_radiolib_esp32dev_voc_experiment_1_110/RadioLib/src
 /home/voc/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src
