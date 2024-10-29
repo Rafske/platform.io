@@ -31,6 +31,7 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 
 #include "DS18B20.h"
 #include "GPS.h"
+#include "PH4502C.h"
 #include "LoRaWAN.hpp"
 
 static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
@@ -43,6 +44,8 @@ static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
 static GAIT::GPS gps(2, 9600, SERIAL_8N1, 16, 17);
 
 static GAIT::DS18B20 ds18B20;
+
+static GAIT::PH4502C phSensor(PH_SENSOR_PIN);
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -100,7 +103,7 @@ void setup() {
     std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     uint8_t fPort = 221;
 
-#define SENSOR_COUNT 2
+#define SENSOR_COUNT 3
 
     uint8_t currentSensor = (bootCount - 1) % SENSOR_COUNT; // Starting at zero (0)
     switch (currentSensor) {
@@ -120,6 +123,8 @@ void setup() {
         case 2:
             // PH-value
             fPort = currentSensor + 1;
+            phSensor.begin();
+            uplinkPayload = std::to_string(phSensor.getPH()); // Get pH value
             break;
     }
 
