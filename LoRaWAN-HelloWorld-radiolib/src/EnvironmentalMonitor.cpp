@@ -31,6 +31,7 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 
 #include "DS18B20.h"
 #include "GPS.h"
+#include "GravityTDS1.h"
 #include "LoRaWAN.hpp"
 #include "PH4502C.h"
 
@@ -46,6 +47,8 @@ static GAIT::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, G
 static GAIT::DS18B20 ds18B20;
 
 static GAIT::PH4502C ph4502c(PH4502C_PH_PIN, PH4502C_TEMPERATURE_PIN);
+
+static GAIT::GravityTDS gravityDTS(TDS_SENSOR_PIN, TDS_SENSOR_VCC, TDS_SENSOR_ADC_RESOLUTION);
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -102,7 +105,7 @@ void setup() {
     std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     uint8_t fPort = 221;
 
-#define SENSOR_COUNT 3
+#define SENSOR_COUNT 4
 
     uint8_t currentSensor = (bootCount - 1) % SENSOR_COUNT; // Starting at zero (0)
     switch (currentSensor) {
@@ -125,6 +128,12 @@ void setup() {
             // PH-value
             ph4502c.setup(7.7);
             uplinkPayload = std::to_string(ph4502c.getPHLevel());
+            fPort = currentSensor + 1;
+            break;
+        case 3:
+            // DTS value
+            gravityDTS.setup();
+            uplinkPayload = std::to_string(gravityDTS.getValue(22)); // 22 Temperature
             fPort = currentSensor + 1;
             break;
     }
