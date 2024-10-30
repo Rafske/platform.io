@@ -6,9 +6,10 @@ namespace GAIT {
         : ph4502c(phPin, tempPin) {
     }
 
-    void PH4502C::setup() {
+    void PH4502C::setup(float calibration) {
         // Initialize the sensor
         ph4502c.init();
+        ph4502c.recalibrate(calibration);
     }
 
     float PH4502C::getPHLevel() {

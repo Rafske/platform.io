@@ -123,7 +123,7 @@ void setup() {
             break;
         case 2:
             // PH-value
-            ph4502c.setup();
+            ph4502c.setup(7.7);
             uplinkPayload = std::to_string(ph4502c.getPHLevel());
             fPort = currentSensor + 1;
             break;
