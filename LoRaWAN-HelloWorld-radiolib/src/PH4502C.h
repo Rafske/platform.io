@@ -10,7 +10,7 @@ namespace GAIT {
     public:
         PH4502C(uint8_t phPin, uint8_t tempPin);
 
-        void setup();
+        void setup(float calibration);
 
         float getPHLevel();
 
