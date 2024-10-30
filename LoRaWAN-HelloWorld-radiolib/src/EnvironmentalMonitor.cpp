@@ -28,6 +28,7 @@ Serial.prints - we promise the final result isn't that many lines.
 #include <Preferences.h>
 
 RTC_DATA_ATTR uint16_t bootCount = 0;
+int tdsValue = 0;
 
 #include "DS18B20.h"
 #include "GPS.h"
@@ -133,9 +134,9 @@ void setup() {
         case 3:
             // TDS value
             tds.setup(); 
-            float temperature = ds18B20.getTemperature(); // Get current temperature for compensation
+            tdsValue = tds.getTDSValue(); // Get TDS value
             fPort = currentSensor + 1;
-            uplinkPayload = std::to_string(tds.getTDSValue(temperature));
+            uplinkPayload = std::to_string(tdsValue);
         break;
     }
 

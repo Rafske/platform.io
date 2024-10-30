@@ -9,15 +9,18 @@ namespace GAIT {
     class TDS {
     public:
         TDS(uint8_t tdsPin);
-
         void setup();
-        float getTDSValue(float temperature);  // Reads TDS value, using temperature for compensation
+        int getTDSValue();
 
     private:
         uint8_t _tdsPin;
-        float _voltageToTDS(float voltage, float temperature);
+        int _readTdsSensor();
     };
 
 } // namespace GAIT
 
 #endif // TDS_H
+
+
+
+

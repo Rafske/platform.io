@@ -2,26 +2,25 @@
 
 namespace GAIT {
 
-    // Constructor
     TDS::TDS(uint8_t tdsPin) : _tdsPin(tdsPin) {}
 
     void TDS::setup() {
-        // Initialize the analog pin for TDS sensor reading
-        pinMode(_tdsPin, INPUT);
+        pinMode(_tdsPin, INPUT); // Initialize the TDS sensor pin as input
     }
 
-    float TDS::getTDSValue(float temperature) {
-        int analogValue = analogRead(_tdsPin); // Read raw analog signal
-        float voltage = analogValue * (3.3 / 4095.0); // Convert to voltage for 3.3V system, 12-bit ADC
-        return _voltageToTDS(voltage, temperature); // Convert voltage to TDS with compensation
+    int TDS::getTDSValue() {
+        return _readTdsSensor(); // Get the TDS value in ppm
     }
 
-    float TDS::_voltageToTDS(float voltage, float temperature) {
-        float compensationCoefficient = 1.0 + 0.02 * (temperature - 25.0); // Temp compensation
-        float compensationVoltage = voltage / compensationCoefficient;
-        return (133.42 * compensationVoltage * compensationVoltage * compensationVoltage 
-                - 255.86 * compensationVoltage * compensationVoltage 
-                + 857.39 * compensationVoltage); // TDS formula in ppm
+    int customMap(int value, int fromLow, int fromHigh, int toLow, int toHigh) {
+    return (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow) + toLow;
     }
+
+    int TDS::_readTdsSensor() {
+    int sensorValue = analogRead(_tdsPin);             // Read analog value from TDS sensor
+    int tdsValue = customMap(sensorValue, 0, 4095, 0, 1000); // Convert analog value to TDS in ppm
+    return tdsValue;
+    }
+
 
 } // namespace GAIT
