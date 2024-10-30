@@ -33,6 +33,7 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 #include "GPS.h"
 #include "LoRaWAN.hpp"
 #include "PH4502C.h"
+#include "TDS.h"
 
 static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORAWAN_JOIN_EUI,
@@ -46,6 +47,9 @@ static GAIT::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, G
 static GAIT::DS18B20 ds18B20;
 
 static GAIT::PH4502C ph4502c(PH4502C_PH_PIN, PH4502C_TEMPERATURE_PIN);
+
+static GAIT::TDS tds(TDS_SENSOR_PIN);
+
 
 // abbreviated version from the Arduino-ESP32 package, see
 // https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
@@ -102,14 +106,13 @@ void setup() {
     std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     uint8_t fPort = 221;
 
-#define SENSOR_COUNT 3
+#define SENSOR_COUNT 4
 
     uint8_t currentSensor = (bootCount - 1) % SENSOR_COUNT; // Starting at zero (0)
     switch (currentSensor) {
         case 0:
             // Position
             gps.setup();
-
             if (gps.isValid()) {
                 fPort = currentSensor + 1; // 1 is location
                 uplinkPayload = std::to_string(gps.getLatitude()) + "," + std::to_string(gps.getLongitude()) + "," +
@@ -124,9 +127,16 @@ void setup() {
         case 2:
             // PH-value
             ph4502c.setup();
-            uplinkPayload = std::to_string(ph4502c.getPHLevel());
             fPort = currentSensor + 1;
+            uplinkPayload = std::to_string(ph4502c.getPHLevel());
             break;
+        case 3:
+            // TDS value
+            tds.setup(); 
+            float temperature = ds18B20.getTemperature(); // Get current temperature for compensation
+            fPort = currentSensor + 1;
+            uplinkPayload = std::to_string(tds.getTDSValue(temperature));
+        break;
     }
 
     loRaWAN.setUplinkPayload(fPort, uplinkPayload);

@@ -13,7 +13,6 @@ namespace GAIT {
 
     float PH4502C::getPHLevel() {
         // Read pH value
-        
         return ph4502c.read_ph_level();
     }
 

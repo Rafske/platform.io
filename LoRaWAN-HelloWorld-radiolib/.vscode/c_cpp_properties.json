@@ -10,6 +10,7 @@
             "includePath": [
                 "c:/Users/ralph/Documents/PlatformIO/Projects/platform.io/LoRaWAN-HelloWorld-radiolib/include",
                 "c:/Users/ralph/Documents/PlatformIO/Projects/platform.io/LoRaWAN-HelloWorld-radiolib/src",
+                "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src",
                 "c:/Users/ralph/Documents/PlatformIO/Projects/platform.io/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v104_sx1276_radiolib_bioguard/PH4502C-Sensor/src",
                 "c:/Users/ralph/Documents/PlatformIO/Projects/platform.io/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v104_sx1276_radiolib_bioguard/DallasTemperature",
@@ -243,7 +244,6 @@
                 "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                 "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
-                "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 ""
             ],
             "browse": {
@@ -251,6 +251,7 @@
                 "path": [
                     "c:/Users/ralph/Documents/PlatformIO/Projects/platform.io/LoRaWAN-HelloWorld-radiolib/include",
                     "c:/Users/ralph/Documents/PlatformIO/Projects/platform.io/LoRaWAN-HelloWorld-radiolib/src",
+                    "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src",
                     "c:/Users/ralph/Documents/PlatformIO/Projects/platform.io/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v104_sx1276_radiolib_bioguard/PH4502C-Sensor/src",
                     "c:/Users/ralph/Documents/PlatformIO/Projects/platform.io/LoRaWAN-HelloWorld-radiolib/.pio/libdeps/ttn_sandbox_lorawan_v104_sx1276_radiolib_bioguard/DallasTemperature",
@@ -484,7 +485,6 @@
                     "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                     "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
-                    "C:/Users/ralph/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     ""
                 ]
             },
@@ -527,6 +527,7 @@
                 "DALLAS_TEMPERATURE_PIN=12",
                 "PH4502C_PH_PIN=34",
                 "PH4502C_TEMPERATURE_PIN=35",
+                "TDS_SENSOR_PIN=32",
                 "RADIOLIB_LORA_UPLINK_INTERVAL_SECONDS=(1UL * 5UL)",
                 "HAVE_CONFIG_H",
                 "MBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\"",
