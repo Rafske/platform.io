@@ -126,7 +126,7 @@ void setup() {
             break;
         case 2:
             // PH-value
-            ph4502c.setup(7.7);
+            ph4502c.setup(PH4502C_DEFAULT_CALIBRATION - 1);
             uplinkPayload = std::to_string(ph4502c.getPHLevel());
             fPort = currentSensor + 1;
             break;
