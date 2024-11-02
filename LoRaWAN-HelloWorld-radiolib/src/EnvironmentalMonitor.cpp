@@ -39,7 +39,11 @@ static GAIT::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
                                                    RADIOLIB_LORAWAN_JOIN_EUI,
                                                    RADIOLIB_LORAWAN_DEV_EUI,
                                                    (uint8_t[16]) {RADIOLIB_LORAWAN_APP_KEY},
+#ifdef RADIOLIB_LORAWAN_NWK_KEY
                                                    (uint8_t[16]) {RADIOLIB_LORAWAN_NWK_KEY},
+#else
+                                                   nullptr,
+#endif
                                                    RADIOLIB_LORA_MODULE_BITMAP);
 
 static GAIT::GPS gps(GPS_SERIAL_PORT, GPS_SERIAL_BAUD_RATE, GPS_SERIAL_CONFIG, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
@@ -126,7 +130,7 @@ void setup() {
             break;
         case 2:
             // PH-value
-            ph4502c.setup(PH4502C_DEFAULT_CALIBRATION - 1);
+            ph4502c.setup(PH4502C_DEFAULT_CALIBRATION);
             uplinkPayload = std::to_string(ph4502c.getPHLevel());
             fPort = currentSensor + 1;
             break;
