@@ -14,6 +14,8 @@ namespace GAIT {
 
     private:
         uint8_t pin;
+        float vcc;
+        uint16_t adcResolution;
         ::GravityTDS gravityTds;
     };
 
