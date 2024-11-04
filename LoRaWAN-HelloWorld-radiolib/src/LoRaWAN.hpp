@@ -111,7 +111,8 @@ namespace GAIT {
                 // doc applies to v1.0.4 & v1.1 it sleeps for longer & longer durations to
                 // give time for any gateway issues to resolve or whatever is interfering
                 // with the device <-> gateway airwaves.
-                uint32_t sleepForSeconds = min((bootCountSinceUnsuccessfulJoin++ + 1UL) * 60UL, 3UL * 60UL);
+                // uint32_t sleepForSeconds = min((bootCountSinceUnsuccessfulJoin++ + 1UL) * 60UL, 3UL * 60UL);
+                uint32_t sleepForSeconds = 30UL;
                 Serial.print(F("Boots since unsuccessful join: "));
                 Serial.println(bootCountSinceUnsuccessfulJoin);
                 Serial.print(F("Retrying join in "));
